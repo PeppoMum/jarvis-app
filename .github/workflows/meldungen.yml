@@ -1,0 +1,29 @@
+name: Meldungen
+on:
+  schedule:
+    - cron: "2-59/5 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: meldungen
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  senden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Europe/Berlin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --no-audit --no-fund web-push@3.6.7 ical.js@2.1.0
+        working-directory: push
+      - run: node push/senden.mjs
+        env:
+          HELFER_PASSWORT: ${{ secrets.HELFER_PASSWORT }}
+          VAPID_PRIVAT: ${{ secrets.VAPID_PRIVAT }}
+          JARVIS_UID: ${{ secrets.JARVIS_UID }}
+          KALENDER_ICAL: ${{ secrets.KALENDER_ICAL }}
