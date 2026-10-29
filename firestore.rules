@@ -1,0 +1,41 @@
+rules_version = '2';
+// Jarvis-App: Jede angemeldete Person sieht nur ihre eigenen Daten unter users/{uid}.
+// Versand-Helfer für Meldungen (eigenes Konto, Passwort als GitHub-Geheimnis, siehe push/LIESMICH.md):
+// liest Phils Daten, schreibt nur die Berichte für die Startseite, den Versand-Stand und die Widget-Daten.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function helfer() { return request.auth != null && request.auth.token.email == 'meldungen@jarvis-app.web.app'; }
+
+    match /users/{uid}/{rest=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /users/{uid}/items/{id} { allow read: if helfer(); }
+    match /users/{uid}/push/{id} { allow read, delete: if helfer(); }
+    match /users/{uid}/meta/{doc} {
+      allow read: if helfer() && doc in ['settings', 'focus', 'versand', 'kasten', 'google'];
+      allow write: if helfer() && doc in ['versand', 'brief', 'briefEvening', 'briefWeekly'];
+    }
+
+    // Briefkasten für Kurzbefehle: Wer den geheimen Schlüssel kennt, darf kurze Aufträge einwerfen (ohne Anmeldung, nur anlegen).
+    // Lesen und abholen darf nur die Person, der der Briefkasten gehört.
+    match /kasten/{k} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid && k.matches('^[0-9a-f]{64}$');
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      match /m/{id} {
+        allow create: if exists(/databases/$(database)/documents/kasten/$(k))
+          && request.resource.data.keys().hasOnly(['art', 'at', 'text', 'cat'])
+          && request.resource.data.art in ['start', 'pause', 'stopp', 'notiz']
+          && request.resource.data.at is int
+          && (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 500))
+          && (!('cat' in request.resource.data) || (request.resource.data.cat is string && request.resource.data.cat.size() <= 30));
+        allow read, delete: if request.auth != null && get(/databases/$(database)/documents/kasten/$(k)).data.uid == request.auth.uid;
+      }
+    }
+
+    // Widget-Daten: schreibt nur der Versand-Helfer; lesen nur mit dem geheimen Schlüssel (einzelnes Dokument, keine Liste).
+    match /widget/{k} {
+      allow get: if true;
+      allow write: if helfer();
+    }
+  }
+}

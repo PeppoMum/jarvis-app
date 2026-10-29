@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de" data-design="jarvis">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jarvis</title>
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jarvis">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Grundlage (wie bisher von Claude mitgeliefert): Abstand für Notch/Home-Leiste, kein Rand, [hidden] versteckt */
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}
+img{max-width:100%}
+[hidden]:not([hidden=until-found i]){display:none!important}
+</style>
+<link rel="stylesheet" href="css/jarvis.css">
+</head>
+<body>
+<div id="app"></div>
+<!-- Firebase (feste Version wie in der Mannschafts-App) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<!-- Google Kalender, Gmail, Wetter (Thread „Google-Zugang“) und Meldungen (Thread „Meldungen“): eigene Dateien, dürfen fehlen -->
+<script src="js/google.js"></script>
+<script src="js/push.js"></script>
+<!-- Die App (aus Jarvis in Claude übernommen), Reihenfolge nicht ändern -->
+<script src="js/00-start.js"></script>
+<script src="js/01-basis.js"></script>
+<script src="js/02-daten.js"></script>
+<script src="js/03-oberflaeche.js"></script>
+<script src="js/04-eingabe.js"></script>
+<script src="js/05-seiten-kalender.js"></script>
+<script src="js/06-uni.js"></script>
+<script src="js/07-wetter-mail.js"></script>
+<script src="js/08-extras.js"></script>
+<script src="js/09-zeiten.js"></script>
+<script src="js/10-alltag.js"></script>
+<script src="js/11-aufgaben-planung.js"></script>
+<script src="js/12-ereignisse.js"></script>
+</body>
+</html>

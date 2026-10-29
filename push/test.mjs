@@ -1,0 +1,101 @@
+/* Probelauf mit ausgedachten Daten, ohne Netz und ohne Versand:  node push/test.mjs
+   Prüft, dass zur richtigen Uhrzeit die richtige Meldung kommt und keine doppelt. */
+process.env.TZ = "Europe/Berlin";
+import assert from "node:assert/strict";
+import { run, zuFs } from "./senden.mjs";
+
+const ICS = `BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-CALNAME:Phil
+BEGIN:VEVENT
+DTSTART;TZID=Europe/Berlin:20261103T093000
+DTEND;TZID=Europe/Berlin:20261103T110000
+RRULE:FREQ=WEEKLY;BYDAY=TU
+UID:sem1@google.com
+SUMMARY:Seminar Deutsch
+LOCATION:Uni Münster
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20261103T163000Z
+DTEND:20261103T180000Z
+UID:tr1@google.com
+SUMMARY:Training U13
+LOCATION:Stausee
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=Europe/Berlin:20261110T080000
+DTEND;TZID=Europe/Berlin:20261110T200000
+UID:voll@google.com
+SUMMARY:Blockseminar
+END:VEVENT
+END:VCALENDAR`;
+
+const items = [
+  { id: "t1", type: "task", title: "Praktikums-Bewerbung abschicken", date: "2026-11-03" },
+  { id: "t2", type: "task", title: "Wäsche", date: "2026-11-01" },
+  { id: "t3", type: "task", title: "Hausarbeit Gliederung", date: "2026-11-12" },
+  { id: "t4", type: "task", title: "Zahnarzt anrufen", remindAt: "2026-11-03T14:00" },
+  { id: "t5", type: "task", title: "Mail an Prof", done: true, doneAt: "2026-11-03T10:15:00.000Z" },
+  { id: "w1", type: "work", date: "2026-11-04", start: "08:00", end: "12:00", place: "Büro" },
+  { id: "h1", type: "habit", title: "Lesen", remind: "21:30", mini: "5 Seiten", log: {} },
+  { id: "b1", type: "birthday", name: "Max", md: "11-03", year: "2014" },
+  { id: "s1", type: "subject", title: "Mathe", examDate: "2026-11-12" },
+  { id: "tl-2026-11-03", type: "timeday", entries: [{ cat: "uni", min: 90 }, { cat: "arbeit", min: 240 }] }
+];
+const settings = { name: "Phil", jpal: "rotgold" };
+const doc = (name, o) => ({ name: "projects/p/databases/(default)/documents/" + name, fields: zuFs(o).mapValue.fields });
+
+function fakeFetch(state) {
+  return async (url, o = {}) => {
+    const j = (x, s = 200) => ({ ok: s < 300, status: s, json: async () => x, text: async () => (typeof x === "string" ? x : JSON.stringify(x)) });
+    if (url.startsWith("https://ical")) return j(ICS);
+    if (url.includes("open-meteo")) return j({ daily: { time: ["2026-11-03", "2026-11-04"], weather_code: [61, 3], temperature_2m_max: [12, 10], temperature_2m_min: [6, 4], precipitation_probability_max: [70, 20] },
+      hourly: { time: ["2026-11-03T17:00"], precipitation_probability: [80], temperature_2m: [9], weather_code: [61], wind_gusts_10m: [30] } });
+    if (url.includes("brightsky")) return j({ alerts: [] });
+    const m = url.match(/documents\/users\/phil\/(meta\/\w+|items|push)/);
+    if (m && (o.method || "GET") === "PATCH") { state.writes.push([m[1], JSON.parse(o.body)]); return j({}); }
+    if (m && m[1] === "items") return j({ documents: items.map((x) => doc("users/phil/items/" + x.id, x)) });
+    if (m && m[1] === "push") return j({ documents: [] });
+    if (m && m[1] === "meta/settings") return j(doc("users/phil/meta/settings", settings));
+    if (m && m[1] === "meta/versand" && state.versand) return j(doc("users/phil/meta/versand", state.versand));
+    return j({}, 404);
+  };
+}
+const lauf = async (zeit, state = { writes: [] }) => {
+  const logs = [];
+  const r = await run({ fetch: fakeFetch(state), env: { KALENDER_ICAL: "https://ical.example/x.ics" }, jetzt: new Date(zeit), cfg: { projectId: "p", apiKey: "k", uid: "phil" }, probe: true, log: (x) => logs.push(x) });
+  return { keys: r.dran.map((d) => d.key), dran: r.dran, logs };
+};
+
+/* Dienstag 3.11.: Morgenbericht 6:45 */
+let r = await lauf("2026-11-03T06:50:00");
+assert.ok(r.keys.includes("morgen:2026-11-03"), "Morgenbericht fehlt: " + r.keys);
+const mb = r.dran.find((d) => d.key.startsWith("morgen")).msg;
+console.log(mb.t + "\n" + mb.b + "\n");
+assert.match(mb.b, /09:30 Seminar Deutsch/); assert.match(mb.b, /Losfahren: spätestens 07:50/); assert.match(mb.b, /🎂 Max \(12\)/); assert.match(mb.b, /Klausur Mathe/);
+/* schon gesendet → nicht nochmal */
+r = await lauf("2026-11-03T07:05:00", { writes: [], versand: { keys: ["morgen:2026-11-03"] } });
+assert.ok(!r.keys.includes("morgen:2026-11-03"));
+/* zu spät (über 2 Std. nach der Zeit) → nicht mehr */
+r = await lauf("2026-11-03T09:00:00");
+assert.ok(!r.keys.some((k) => k.startsWith("morgen")));
+/* Losfahren: 15 Min. vorher */
+r = await lauf("2026-11-03T07:37:00");
+assert.ok(r.keys.some((k) => k.startsWith("los:2026-11-03")), "Losfahren fehlt: " + r.keys);
+console.log(r.dran.find((d) => d.key.startsWith("los")).msg, "\n");
+/* Aufgaben-Erinnerung 14:00 */
+r = await lauf("2026-11-03T14:03:00"); assert.ok(r.keys.includes("auf:t4:2026-11-03T14:00"));
+/* Abendrückblick 20:45 */
+r = await lauf("2026-11-03T20:47:00");
+const ab = r.dran.find((d) => d.key.startsWith("abend")); assert.ok(ab); console.log(ab.msg.t + "\n" + ab.msg.b + "\n");
+assert.match(ab.msg.b, /Erfasst: 5 Std 30 Min/); assert.match(ab.msg.b, /Morgen: 08:00 Arbeit · Büro/);
+/* Gewohnheit 21:30 liegt in der Ruhezeit (21–7) → keine Meldung */
+r = await lauf("2026-11-03T21:35:00"); assert.ok(!r.keys.some((k) => k.startsWith("hab")));
+/* Samstag: Morgenbericht erst 9:00 */
+r = await lauf("2026-11-07T06:50:00"); assert.ok(!r.keys.some((k) => k.startsWith("morgen")));
+r = await lauf("2026-11-07T09:02:00"); assert.ok(r.keys.includes("morgen:2026-11-07"));
+/* Sonntag 18:45: Wochenplanung */
+r = await lauf("2026-11-08T18:50:00");
+const wp = r.dran.find((d) => d.key.startsWith("woche")); assert.ok(wp); console.log(wp.msg.t + "\n" + wp.msg.b + "\n");
+assert.match(wp.msg.b, /Hausarbeit Gliederung \(Do\)/); assert.match(wp.msg.b, /Sehr voll: Di 12 Std\./);
+console.log("Alle Proben bestanden.");
