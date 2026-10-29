@@ -617,7 +617,7 @@ function timeStats(from, to) {
 }
 // Geplant gegen gemacht: was im Kalender stand (bis jetzt) gegen das, was erfasst ist
 function planVsDone(from, to) {
-  const t = todayISO(), end = to < t ? to : t, now = hmToMin(nowHM()), plan = {}, done = {}, missed = [];
+  const t = todayISO(), end = to < t ? to : t, now = hmToMin(nowHM()), plan = {}, done = {}, missed = [], skip = tskipRead();
   if (from > t) return null;
   for (let d = from; d <= end; d = addDays(d, 1)) {
     const es = dayEntries(d);
@@ -626,7 +626,7 @@ function planVsDone(from, to) {
       if (d === t && hmToMin(b.end) > now) return;   // läuft noch oder kommt noch
       plan[c.cat] = (plan[c.cat] || 0) + rangeMin(b.start, b.end);
       const hit = es.some(e => e.calRef === b.id || (e.cat === c.cat && (!e.start || !e.end || (e.start < b.end && e.end > b.start))));
-      if (!hit) missed.push({ b, c, d });
+      if (!hit && !skip.includes(d + ':' + b.id)) missed.push({ b, c, d });
     });
   }
   periodEntries(from, end).forEach(e => { done[e.cat] = (done[e.cat] || 0) + e.min; });
@@ -638,7 +638,7 @@ function planDoneCard(R) {
   const h = m => fmtH(m / 60);
   return '<section class="card" style="margin-top:12px"><h2 class="label">Geplant gegen gemacht · bis jetzt</h2>' +
     P.rows.map(r => { const d = r.done - r.plan; return '<div class="listrow"><span class="lt"><span class="tdot" style="display:inline-block;margin-right:6px;background:' + catColor(r.id) + '"></span>' + esc(catName(r.id)) + '<small>geplant ' + h(r.plan) + ' Std. · gemacht ' + h(r.done) + ' Std.</small></span><span class="mono" style="color:' + (!r.plan ? 'var(--mu)' : d < -30 ? 'var(--o)' : 'var(--tx)') + '">' + (!r.plan ? 'spontan' : (d >= 0 ? '+' : '−') + h(Math.abs(d)) + ' Std.') + '</span></div>'; }).join('') +
-    (P.missed.length ? '<h3 class="label" style="margin-top:14px">Im Kalender, aber nicht erfasst</h3>' + P.missed.slice(0, 6).map(x => '<div class="listrow"><span class="lt">' + esc(x.b.title || catName(x.c.cat)) + '<small>' + esc(fmtShort(x.d)) + ' · ' + esc(x.b.start + '–' + x.b.end) + ' · ' + esc(catName(x.c.cat, x.c.sub)) + '</small></span><button class="btn ghost" data-pdlog="' + esc(x.b.id) + '|' + esc(x.d) + '">So gemacht</button></div>').join('') +
+    (P.missed.length ? '<h3 class="label" style="margin-top:14px">Im Kalender, aber nicht erfasst</h3>' + P.missed.slice(0, 6).map(x => '<div class="listrow"><span class="lt">' + esc(x.b.title || catName(x.c.cat)) + '<small>' + esc(fmtShort(x.d)) + ' · ' + esc(x.b.start + '–' + x.b.end) + ' · ' + esc(catName(x.c.cat, x.c.sub)) + '</small></span><span class="row"><button class="btn ghost" data-pdskip="' + esc(x.b.id) + '|' + esc(x.d) + '">Nicht gemacht</button><button class="btn" data-pdlog="' + esc(x.b.id) + '|' + esc(x.d) + '">So gemacht</button></span></div>').join('') +
       (P.missed.length > 6 ? '<p class="sub">… und ' + (P.missed.length - 6) + ' weitere.</p>' : '') : '') + '</section>';
 }
 function pageTimes() {
@@ -734,6 +734,10 @@ function timeEditSheet() {
 const tskipRead = () => { try { return JSON.parse(localStorage.getItem('jarvis.tskip') || '[]'); } catch (e) { return []; } };
 function timeAskList() {
   if (new Date().getHours() < 17) return [];
+  return timeOpenToday();
+}
+// Heute vorbei, im Kalender mit Bereich, aber weder erfasst noch als „nicht gemacht“ markiert
+function timeOpenToday() {
   const t = todayISO(), now = hmToMin(nowHM()), skip = tskipRead(), es = dayEntries(t);
   return blocksOn(t).filter(b => b.start && b.end && hmToMin(b.end) <= now).map(b => ({ b, c: blockCat(b) }))
     .filter(x => x.c && !skip.includes(t + ':' + x.b.id) && !es.some(e => e.calRef === x.b.id || (e.start && e.end && hmToMin(e.start) < hmToMin(x.b.end) && hmToMin(e.end) > hmToMin(x.b.start))));

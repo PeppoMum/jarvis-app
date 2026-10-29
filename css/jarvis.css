@@ -873,3 +873,6 @@ html{-webkit-tap-highlight-color:transparent;background:var(--bg)}
 .calok{color:color-mix(in srgb,var(--g) 68%,var(--tx))}
 /* Kleine Handys: Zahlen in der Zahlenleiste (z. B. „16,8 / 45 Std.“) passen in die Kachel */
 @media(max-width:400px){html[data-design="jarvis"] :is(.nums,.jhead .nums) b{font-size:clamp(18px,5.8vw,30px)}}
+/* Startseite „Was machst du gerade?“: heute erfasst + vorbei, aber nicht erfasst (29.10.) */
+.jtoday-t{display:block;margin-top:6px;color:var(--mu);font-size:13px;text-decoration:none}.jtoday-t b{color:var(--tx)}
+.jopen{border-top:1px solid var(--ln);padding-top:8px;margin-top:4px}.jopen .listrow{gap:8px}.jopen .listrow .row{gap:6px;flex-wrap:nowrap;flex-shrink:0}
