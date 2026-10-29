@@ -1,0 +1,112 @@
+/* Jarvis-App: drei ruhige Looks (Smaragd Ruhig, Glas, Polar) über dem Aufbau der Rüstung. Phil, 29.10.2026.
+   Gilt nur, wenn <html data-skin="…"> gesetzt ist; ohne data-skin bleibt alles Rüstung. Farben: hell + dunkel, Ampelfarben bleiben. */
+html:root[data-design="jarvis"][data-skin="smaragd"]{--bg:#F3F2EC;--card:#FFFFFF;--soft:#EDF1EC;--ln:#DCE3DC;--tx:#0F2A22;--mu:#52645B;--ac:#0B5D47;--onac:#FFFFFF;--acs:#DDEEE5;--onacs:#0B4A39;--nav:#FFFFFF;--navtx:#0F2A22;--navon:#0B5D47;--onnavon:#F8E7C9;--jstr:#B3261E;--onjstr:#FFFFFF;--jglow:11,93,71;--jtrk:#EDF1EC;--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--font:"DM Sans",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Outfit","DM Sans",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="smaragd"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#171716;--card:#20201F;--soft:#292927;--ln:#363633;--tx:#F2F1EC;--mu:#ADACA5;--ac:#7FD3A8;--onac:#0B2A1E;--acs:#24392F;--onacs:#A8E6C6;--nav:#1B1B1A;--navtx:#F2F1EC;--navon:#7FD3A8;--onnavon:#0B2A1E;--jstr:#C0392B;--onjstr:#FFFFFF;--jglow:127,211,168;--jtrk:#292927;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}}
+html:root[data-design="jarvis"][data-skin="smaragd"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="smaragd"][data-mode="dark"]{--bg:#171716;--card:#20201F;--soft:#292927;--ln:#363633;--tx:#F2F1EC;--mu:#ADACA5;--ac:#7FD3A8;--onac:#0B2A1E;--acs:#24392F;--onacs:#A8E6C6;--nav:#1B1B1A;--navtx:#F2F1EC;--navon:#7FD3A8;--onnavon:#0B2A1E;--jstr:#C0392B;--onjstr:#FFFFFF;--jglow:127,211,168;--jtrk:#292927;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}
+html:root[data-design="jarvis"][data-skin="glas"]{--bg:#E9F1F1;--card:rgba(255,255,255,.82);--soft:rgba(255,255,255,.6);--ln:rgba(15,60,70,.14);--tx:#10262C;--mu:#465E68;--ac:#0F5C6E;--onac:#FFFFFF;--acs:#D3EBEC;--onacs:#0B4452;--nav:rgba(255,255,255,.75);--navtx:#10262C;--navon:#0F5C6E;--onnavon:#FFFFFF;--jstr:#B93A2A;--onjstr:#FFFFFF;--jglow:15,92,110;--jtrk:rgba(255,255,255,.55);--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--gl1:rgba(15,92,110,.20);--gl2:rgba(232,102,79,.16);--font:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Urbanist","Plus Jakarta Sans",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="glas"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#08161A;--card:rgba(20,42,48,.82);--soft:rgba(255,255,255,.06);--ln:rgba(255,255,255,.12);--tx:#EAF3F2;--mu:#A3B9BB;--ac:#FF9A85;--onac:#2B0E08;--acs:#3A2A2A;--onacs:#FFC9BC;--nav:rgba(10,28,33,.78);--navtx:#EAF3F2;--navon:#FF9A85;--onnavon:#2B0E08;--jstr:#C9483A;--onjstr:#FFFFFF;--jglow:255,154,133;--jtrk:rgba(255,255,255,.04);--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;--gl1:rgba(47,160,180,.20);--gl2:rgba(255,138,115,.14);color-scheme:dark}}
+html:root[data-design="jarvis"][data-skin="glas"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="glas"][data-mode="dark"]{--bg:#08161A;--card:rgba(20,42,48,.82);--soft:rgba(255,255,255,.06);--ln:rgba(255,255,255,.12);--tx:#EAF3F2;--mu:#A3B9BB;--ac:#FF9A85;--onac:#2B0E08;--acs:#3A2A2A;--onacs:#FFC9BC;--nav:rgba(10,28,33,.78);--navtx:#EAF3F2;--navon:#FF9A85;--onnavon:#2B0E08;--jstr:#C9483A;--onjstr:#FFFFFF;--jglow:255,154,133;--jtrk:rgba(255,255,255,.04);--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;--gl1:rgba(47,160,180,.20);--gl2:rgba(255,138,115,.14);color-scheme:dark}
+html:root[data-design="jarvis"][data-skin="polar"]{--bg:#F1F4F8;--card:#FFFFFF;--soft:#E8EEF5;--ln:#D6DFEA;--tx:#0C1A2C;--mu:#556377;--ac:#0A62C2;--onac:#FFFFFF;--acs:#DCEAFB;--onacs:#0A4C96;--nav:#FFFFFF;--navtx:#0C1A2C;--navon:#0C1A2C;--onnavon:#FFFFFF;--jstr:#C42B32;--onjstr:#FFFFFF;--jglow:10,98,194;--jtrk:#E8EEF5;--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--font:"Manrope",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Sora","Manrope",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="polar"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#161819;--card:#1F2123;--soft:#282B2E;--ln:#36393D;--tx:#EEF0F2;--mu:#A9AEB4;--ac:#7DBBFF;--onac:#071E36;--acs:#23344A;--onacs:#B5D7FF;--nav:#1A1C1E;--navtx:#EEF0F2;--navon:#7DBBFF;--onnavon:#071E36;--jstr:#C9353B;--onjstr:#FFFFFF;--jglow:125,187,255;--jtrk:#282B2E;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}}
+html:root[data-design="jarvis"][data-skin="polar"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="polar"][data-mode="dark"]{--bg:#161819;--card:#1F2123;--soft:#282B2E;--ln:#36393D;--tx:#EEF0F2;--mu:#A9AEB4;--ac:#7DBBFF;--onac:#071E36;--acs:#23344A;--onacs:#B5D7FF;--nav:#1A1C1E;--navtx:#EEF0F2;--navon:#7DBBFF;--onnavon:#071E36;--jstr:#C9353B;--onjstr:#FFFFFF;--jglow:125,187,255;--jtrk:#282B2E;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}
+/* ===== Gemeinsam für alle drei: Rüstung-Schmuck zurücknehmen (Aufbau der Seiten bleibt gleich) ===== */
+html[data-design="jarvis"][data-skin]{--r-ctl:10px;--r-card:16px;--cutp:none;--cuts:none}
+html[data-design="jarvis"][data-skin] body{background-image:none}
+html[data-design="jarvis"][data-skin] :is(.card,.subj,.day,.stat,.nowbar,.minifocus,.morelist a,.catrow){border:1px solid var(--ln);border-radius:var(--r-card);clip-path:none}
+html[data-design="jarvis"][data-skin] .label{letter-spacing:.1em;font-weight:700}
+html[data-design="jarvis"][data-skin] :is(h1.page,.greet){text-transform:none;letter-spacing:-.015em}
+html[data-design="jarvis"][data-skin] .greet{font-size:40px;line-height:1.05}
+html[data-design="jarvis"][data-skin] h1.page{font-size:34px}
+html[data-design="jarvis"][data-skin] :is(.datel,.jhead .datel){letter-spacing:.12em;color:var(--mu)}
+html[data-design="jarvis"][data-skin] :is(.subj h3,.sheet h2,.day h3){text-transform:none;letter-spacing:0;font-size:18px}
+html[data-design="jarvis"][data-skin] .day h3{font-size:16px}
+html[data-design="jarvis"][data-skin] .top{color:var(--navtx);border-bottom:1px solid var(--ln)}
+html[data-design="jarvis"][data-skin] .brand{color:var(--navtx);font-size:21px;letter-spacing:.01em;text-transform:none}
+html[data-design="jarvis"][data-skin] .brand .dot{width:13px;height:13px;border-radius:50%;clip-path:none}
+html[data-design="jarvis"][data-skin] .nav a{border-radius:var(--r-ctl);text-transform:none;letter-spacing:0;font-size:14px;padding:7px 13px;clip-path:none}
+html[data-design="jarvis"][data-skin] .topmeta .clock{color:var(--navtx);font-size:19px}
+html[data-design="jarvis"][data-skin] .top .iconbtn{border-color:var(--ln);color:var(--navtx)}
+html[data-design="jarvis"][data-skin] .nav .badge{background:var(--acs);color:var(--onacs)}
+html[data-design="jarvis"][data-skin] :is(.btn,.composer .send,.composer .mic,.iconbtn,.seg,.seg button,.chips,.nowbtn,.infos a,.ftop,.amp,.countdown,.links a,.skips button,.star,.rating button,.daypick label,.mday,.bcard,.hint,.mstat div,.wa,.ans,.flash,.pv,.btipp,.jbubble,.mebubble,.jmsg,.toast,.field input,.field select,.field textarea,.addrow input,.composer textarea,.steps span){border-radius:var(--r-ctl)}
+html[data-design="jarvis"][data-skin] :is(.chips button,.tag,.badge,.prog,.prog i,.tbar,.tbar i,.barrow .track,.barrow .track i,.vbars .vb i){border-radius:99px}
+html[data-design="jarvis"][data-skin] :is(.dots i,.tdot,.palsw i,.hint .hx){border-radius:50%}
+html[data-design="jarvis"][data-skin] :is(.btn.primary,.composer .send,.nowbtn[aria-pressed="true"]){clip-path:none;text-transform:none;letter-spacing:0}
+html[data-design="jarvis"][data-skin] .nowbtn{text-transform:none;letter-spacing:0;font-size:14px}
+/* „Als Nächstes“: ruhige Kachel statt bunter Fläche (Phil, 29.10.) */
+html[data-design="jarvis"][data-skin] .next{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:var(--r-card);clip-path:none}
+html[data-design="jarvis"][data-skin] .next .label{color:var(--mu)}
+html[data-design="jarvis"][data-skin] .next .t{text-transform:none;font-size:22px;letter-spacing:-.01em}
+html[data-design="jarvis"][data-skin] .next .cd{color:var(--onacs);background:var(--acs);border-radius:99px;padding:2px 9px;align-self:flex-start}
+html[data-design="jarvis"][data-skin] .nums a{background:var(--card);border:1px solid var(--ln)!important;border-radius:var(--r-card);clip-path:none}
+html[data-design="jarvis"][data-skin] .nums b{font-size:34px}
+html[data-design="jarvis"][data-skin] .nums small{text-transform:none;letter-spacing:0;font-size:12.5px}
+html[data-design="jarvis"][data-skin] .jhead .nums a:nth-child(2){border-color:var(--jstr)!important}
+html[data-design="jarvis"][data-skin] .sheet{border-radius:var(--r-card);border:1px solid var(--ln)}
+html[data-design="jarvis"][data-skin] .tli .bar{border-radius:2px}
+html[data-design="jarvis"][data-skin] :is(.subh2,.group h3,.mgh h4){letter-spacing:.08em}
+html[data-design="jarvis"][data-skin] .mgh h4 span{border-radius:99px}
+html[data-design="jarvis"][data-skin] .sgroup{border-radius:var(--r-card)}
+html[data-design="jarvis"][data-skin] :is(.dprit,.dpbar,.dphint){border-radius:var(--r-ctl)}
+html[data-design="jarvis"][data-skin] .dpdots li{border-radius:99px;text-transform:none;letter-spacing:0;font-size:12px}
+html[data-design="jarvis"][data-skin] .dayseg button{text-transform:none;letter-spacing:0;font-size:13px}
+html[data-design="jarvis"][data-skin] .fsx{background-image:none}
+html[data-design="jarvis"][data-skin] .fsx .fswhat{text-transform:none;letter-spacing:0}
+html[data-design="jarvis"][data-skin] .fsx .fsdots i{border-radius:50%;transform:none}
+html[data-design="jarvis"][data-skin] .jhead .greet{font-size:clamp(36px,3.4vw,52px)}
+html[data-design="jarvis"][data-skin] section.card.jplan{background:var(--card);border:1px solid var(--ln)}
+html[data-design="jarvis"][data-skin] .jph .jline{display:none}
+html[data-design="jarvis"][data-skin] .jnx i{background:var(--acs);color:var(--onacs);border-radius:99px;letter-spacing:.06em;clip-path:none}
+html[data-design="jarvis"][data-skin] .jclock{color:var(--tx)}
+html[data-design="jarvis"][data-skin] .jnb .btn{letter-spacing:0;text-transform:none}
+html[data-design="jarvis"][data-skin] .jnb .btn.primary{background:var(--ac);border-color:var(--ac);color:var(--onac)}
+html[data-design="jarvis"][data-skin] .jtog .jtl{letter-spacing:.1em}
+html[data-design="jarvis"][data-skin] .jadj .btn{font-family:var(--font)}
+html[data-design="jarvis"][data-skin] .bnc{border-radius:99px;clip-path:none}
+/* Tagesplan-Leiste: Termine als ruhige Kästchen mit Farbstrich */
+html[data-design="jarvis"][data-skin] .jtrack .jh span{font-family:var(--font);font-size:12px}
+html[data-design="jarvis"][data-skin] .jtrack .jl{border-radius:var(--r-ctl)}
+html[data-design="jarvis"][data-skin] .jtrack .jall span{border-radius:99px}
+html[data-design="jarvis"][data-skin] .jtrack .jb{background:color-mix(in srgb,var(--ac) 11%,var(--card));color:var(--tx);border-radius:8px}
+html[data-design="jarvis"][data-skin] .jtrack .jb:not(.free){border-left:3px solid var(--ac)}
+html[data-design="jarvis"][data-skin] .jtrack .jb b{font-family:var(--disp);font-size:15px}
+html[data-design="jarvis"][data-skin] .jtrack .jb small{opacity:1;color:var(--mu)}
+html[data-design="jarvis"][data-skin] .jtrack .jb.past{background:var(--card);box-shadow:inset 0 0 0 1px var(--ln);border-left-color:var(--mu)}
+html[data-design="jarvis"][data-skin] .jtrack .jb.nx{box-shadow:inset 0 0 0 2px var(--ac)}
+html[data-design="jarvis"][data-skin] .jtrack .jb.free{border-radius:8px}
+html[data-design="jarvis"][data-skin] .jplan .jtrack .jb.ride{background:var(--soft);color:var(--mu)}
+html[data-design="jarvis"][data-skin] .jtrack .jnow{background:var(--ac);box-shadow:none;border-radius:2px}
+html[data-design="jarvis"][data-skin] .jtrack .jnow i{background:var(--ac);color:var(--onac);border-radius:99px;letter-spacing:.04em}
+@media(max-width:760px){
+  html[data-design="jarvis"][data-skin] .greet,html[data-design="jarvis"][data-skin] .jhead .greet{font-size:32px}
+  html[data-design="jarvis"][data-skin] h1.page{font-size:28px}
+  html[data-design="jarvis"][data-skin] .nums b,html[data-design="jarvis"][data-skin] .jhead .nums b{font-size:clamp(20px,6.4vw,26px)}
+  html[data-design="jarvis"][data-skin] .jhead .nums small{text-transform:none;letter-spacing:0;font-size:11.5px}
+  html[data-design="jarvis"][data-skin] section.card.jplan{background:transparent;border:0}
+  html[data-design="jarvis"][data-skin] .bottomnav{border:1px solid var(--ln);border-radius:24px;clip-path:none;box-shadow:0 4px 18px rgba(0,0,0,.12)}
+  html[data-design="jarvis"][data-skin] .bottomnav a{border-radius:18px;text-transform:none;letter-spacing:0;font-size:11px}
+}
+
+/* ===== 1 Smaragd Ruhig: weich, viel Luft, Schatten statt Rahmen ===== */
+html[data-design="jarvis"][data-skin="smaragd"]{--r-ctl:12px;--r-card:18px}
+html[data-design="jarvis"][data-skin="smaragd"] .brand .dot{border-radius:4px;transform:rotate(45deg);width:11px;height:11px}
+html[data-design="jarvis"][data-skin="smaragd"] .nav a{border-radius:99px}
+html[data-design="jarvis"][data-skin="smaragd"] :is(.card,.subj,.day,.stat,.nowbar,.minifocus,.morelist a,.catrow,.next,.sheet,section.card.jplan){border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
+html[data-design="jarvis"][data-skin="smaragd"] .nums a{border-color:transparent!important;box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
+html[data-design="jarvis"][data-skin="smaragd"] .jhead .nums a:nth-child(2){border-color:var(--jstr)!important}
+html[data-design="jarvis"][data-skin="smaragd"] .top{border-bottom-color:transparent;box-shadow:0 1px 0 var(--ln)}
+
+/* ===== 2 Glas: halb durchsichtige Flächen auf sanftem Farbschimmer ===== */
+html[data-design="jarvis"][data-skin="glas"]{--r-ctl:12px;--r-card:20px}
+html[data-design="jarvis"][data-skin="glas"] body{background-image:radial-gradient(900px 520px at 95% -5%,var(--gl1),transparent 70%),radial-gradient(800px 520px at -5% 100%,var(--gl2),transparent 70%);background-attachment:fixed}
+html[data-design="jarvis"][data-skin="glas"] :is(.top,.bottomnav,.card,.nums a,.next,.sheet){-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+html[data-design="jarvis"][data-skin="glas"] .brand .dot{background:linear-gradient(135deg,var(--navon),var(--jstr))}
+
+/* ===== 3 Polar: klare Linien, ein Hauch Leuchten ===== */
+html[data-design="jarvis"][data-skin="polar"]{--r-ctl:8px;--r-card:12px}
+html[data-design="jarvis"][data-skin="polar"] .brand .dot{background:transparent;border:2.5px solid var(--ac);box-shadow:0 0 0 3px var(--acs),0 0 12px rgba(var(--jglow),.35)}
+html[data-design="jarvis"][data-skin="polar"] .nav a[aria-current="page"]{box-shadow:0 0 14px rgba(var(--jglow),.3)}
+html[data-design="jarvis"][data-skin="polar"] .nums b{text-shadow:0 0 18px rgba(var(--jglow),.25)}
+html[data-design="jarvis"][data-skin="polar"] .jhead .nums a:nth-child(2) b{text-shadow:none}
+html[data-design="jarvis"][data-skin="polar"] section.card.jplan,html[data-design="jarvis"][data-skin="polar"] .next{border-top:2px solid var(--ac)}
+html[data-design="jarvis"][data-skin="polar"] .jtrack .jnow{box-shadow:0 0 10px rgba(var(--jglow),.6)}
+@media(max-width:760px){html[data-design="jarvis"][data-skin="polar"] section.card.jplan{border-top:0}html[data-design="jarvis"][data-skin="polar"] .bottomnav a[aria-current="page"]{background:transparent;color:var(--ac);box-shadow:inset 0 2px 0 var(--ac);border-radius:6px}}

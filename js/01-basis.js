@@ -144,7 +144,7 @@ const store = {
     const o = local.read(); if (o.items) delete o.items[id]; local.write(o); S.items = Object.values(o.items || {}); render();
   },
   async setSettings(s) {
-    try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: s.mode, palette: s.palette, design: s.design, jpal: s.jpal })); } catch (e) {}
+    try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: s.mode, palette: s.palette, design: s.design, jpal: s.jpal, skin: s.skin })); } catch (e) {}
     if (db) return db.doc('meta/settings').set(s);
     const o = local.read(); o.settings = s; local.write(o);
   },
@@ -182,7 +182,7 @@ async function boot() {
     db.collection('items').onSnapshot(snap => { S.items = snap.docs.map(d => ({ ...d.data(), id: d.id })); S.loaded = true; render(); }, onDbError);
     db.doc('meta/settings').onSnapshot(snap => {
       if (!S.setSeen) { S.setSeen = true; S.setExists = snap.exists; }
-      if (snap.exists) { S.settings = { ...S.settings, ...snap.data() }; try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: S.settings.mode, palette: S.settings.palette, design: S.settings.design, jpal: S.settings.jpal })); } catch (e) {} applyLook(); render(); }
+      if (snap.exists) { S.settings = { ...S.settings, ...snap.data() }; try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: S.settings.mode, palette: S.settings.palette, design: S.settings.design, jpal: S.settings.jpal, skin: S.settings.skin })); } catch (e) {} applyLook(); render(); }
     }, onDbError);
     db.doc('meta/timer').onSnapshot(snap => { S.timer = snap.exists && snap.data().subjectId ? snap.data() : null; render(); }, onDbError);
     db.doc('meta/chat').onSnapshot(snap => { S.chat = snap.exists ? (snap.data().log || []) : []; render(); }, onDbError);
@@ -220,11 +220,19 @@ function applyLook() {
   // „Automatisch“: erst Claude (data-theme), dann das Gerät; das Ergebnis steht immer fest in data-mode
   const html = document.documentElement, m = S.settings.mode || 'auto';
   html.dataset.mode = resolvedMode(); html.style.colorScheme = html.dataset.mode;
-  if (isJarvis()) { delete html.dataset.palette; html.dataset.design = 'jarvis'; html.dataset.jcol = jpalId(); }
+  if (isJarvis()) { delete html.dataset.palette; html.dataset.design = 'jarvis'; const sk = skinId(); if (sk) { html.dataset.skin = sk; delete html.dataset.jcol; } else { delete html.dataset.skin; html.dataset.jcol = jpalId(); } }
   else { html.dataset.palette = S.settings.palette || 'smaragd'; delete html.dataset.design; delete html.dataset.jcol; }
 }
 const isJarvis = () => true;   // eigene App: nur das Rüstung-Design
 const jpalId = () => JPALETTES.some(p => p.id === S.settings.jpal) ? S.settings.jpal : 'rotgold';
+// Drei ruhige Looks (css/looks.css), Phil 29.10.2026. Leer = Rüstung.
+const SKINS = [
+  { id: '', name: 'Rüstung', sub: 'Futuristisch, schräge Ecken', c: ['#C8322B', '#E8B04B', '#0F0C0B'] },
+  { id: 'smaragd', name: 'Smaragd Ruhig', sub: 'Weich und rund, viel Luft', c: ['#0B5D47', '#F8E7C9', '#20201F'] },
+  { id: 'glas', name: 'Glas', sub: 'Halb durchsichtig, Petrol und Koralle', c: ['#0F5C6E', '#FF9A85', '#08161A'] },
+  { id: 'polar', name: 'Polar', sub: 'Klare Linien, leichtes Leuchten', c: ['#0A62C2', '#7DBBFF', '#1F2123'] }
+];
+const skinId = () => SKINS.some(k => k.id && k.id === S.settings.skin) ? S.settings.skin : '';
 mq.addEventListener && mq.addEventListener('change', () => { applyLook(); });
 try { new MutationObserver(() => { if ((S.settings.mode || 'auto') === 'auto' && document.documentElement.dataset.mode !== resolvedMode()) applyLook(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
 
@@ -307,7 +315,11 @@ const JPALETTES = [
   }).join('\n');
   const st = document.createElement('style'); st.id = 'jpalettes'; st.textContent = css; document.head.appendChild(st); applyLook();
 })();
-function designSettings() { return '';   // eigene App: nur Rüstung, keine Auswahl
+function designSettings() {   // Rüstung oder einer der drei ruhigen Looks
+  const cur = skinId();
+  return '<section class="card"><h2 class="label">Design</h2><div class="palgrid" role="group" aria-label="Design">' +
+    SKINS.map(k => '<button class="palbtn" data-skin="' + (k.id || 'ruestung') + '" aria-pressed="' + (cur === k.id) + '"><span class="palsw">' + k.c.map(x => '<i style="background:' + x + '"></i>').join('') + '</span><span>' + esc(k.name) + ' <small class="sub">' + esc(k.sub) + '</small></span></button>').join('') +
+    '</div></section>';
 }
 function designSettingsAlt() {
   const j = isJarvis();
@@ -316,6 +328,7 @@ function designSettingsAlt() {
     '<button data-look="jarvis" aria-pressed="' + j + '">Jarvis<small>Futuristisch wie die Iron-Man-Rüstung</small></button></div></section>';
 }
 function paletteSettings() {
+  if (isJarvis() && skinId()) return '';   // die ruhigen Looks haben feste Farben
   if (isJarvis()) {
     const cj = jpalId();
     return '<section class="card"><h2 class="label">Farben</h2><div class="palgrid" role="group" aria-label="Jarvis-Farbe">' +
