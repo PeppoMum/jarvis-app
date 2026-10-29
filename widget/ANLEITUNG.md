@@ -27,6 +27,6 @@ Dauert etwa 5 Minuten. Du brauchst die kostenlose App **Scriptable** aus dem App
 
 ## Gut zu wissen
 - Das Widget frischt sich etwa alle 15 Minuten auf (das bestimmt das iPhone). Unten rechts steht, von wann der Stand ist.
-- Farben und hell/dunkel nimmt es aus deinen Jarvis-Einstellungen.
+- Die Farbe nimmt es aus deinen Jarvis-Einstellungen. Hell oder dunkel richtet sich nach deinem iPhone.
 - Den Einrichtungs-Code nicht weitergeben: Wer ihn hat, sieht deine Termine im Widget.
 - Auch fürs Sperrbildschirm-Widget geht es: dort Scriptable wählen und wieder Script **Jarvis**.
