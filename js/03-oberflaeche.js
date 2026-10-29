@@ -278,13 +278,35 @@ async function calFlush() {
       const b = blocksOn(t).find(x => x.id === id); if (!b || !b.end || hmToMin(b.end) > now || skip.includes(t + ':' + id) || calLogged(dayEntries(t), b)) continue;
       await timeFromBlock(id, t);
     }
+    await calTimeSync(t);
   } finally { calFlushing = false; }
+}
+// Zeit aus dem Kalender folgt dem Kalender (nur heute, nur nicht von Hand bearbeitet):
+// Termin gelöscht → Zeit weg, Termin verschoben oder anderer Bereich → Zeit neu erfasst
+async function calTimeSync(t) {
+  const gOk = S.gcalState === 'ok' && !S.gcalPartial, bl = blocksOn(t), now = hmToMin(nowHM());
+  const es = rawEntries(t).filter(e => e.src === 'kalender' && e.calRef && !e.hand);
+  const redo = [], drop = [];
+  for (const ref of new Set(es.map(e => e.calRef))) {
+    const b = bl.find(x => x.id === ref), mine = es.filter(e => e.calRef === ref), c = b && blockCat(b);
+    if (!b) { if (!ref.startsWith('g:') || gOk) drop.push(ref); continue; }
+    if (!c) { drop.push(ref); continue; }
+    const old = !mine.some(e => e.calSpan), lo = Math.min(...mine.map(e => hmToMin(e.start) ?? 9999)), hi = Math.max(...mine.map(e => hmToMin(e.end) ?? -1));
+    const moved = old ? lo !== hmToMin(b.start) || hi > hmToMin(b.end) : !mine.some(e => e.calSpan === b.start + '-' + b.end);   // ältere Einträge ohne calSpan: Beginn verschoben oder Termin kürzer
+    if (moved || mine.some(e => catId(e.cat) !== c.cat)) { drop.push(ref); redo.push(b); }
+  }
+  if (!drop.length) return;
+  const snap = daySnap(t);
+  await saveDay(t, rawEntries(t).filter(e => !(drop.includes(e.calRef) && e.src === 'kalender' && !e.hand)));
+  for (const b of redo) { if (hmToMin(b.end) <= now) await timeFromBlock(b.id, t, true); else calSeenAdd(b.id); }
+  logAct('Zeit an den Kalender angepasst', { restore: [snap] });
+  showToast('Zeit an den geänderten Kalender angepasst.', () => restoreDays([snap])); render();
 }
 async function calStopNow(id) {
   const t = todayISO(), b = blocksOn(t).find(x => x.id === id), c = b && blockCat(b); if (!c) return;
   const end = nowHM(), r = rangeMin(b.start, end); if (r < 1) return;
   const pause = catOf(c.cat).pause ? autoPauseMin(r) : 0, snap = daySnap(t);
-  await addTimeEntry(t, { cat: c.cat, sub: c.sub, label: String(b.title || '').slice(0, 120), min: r - pause, start: b.start, end, pause: pause || null, src: 'kalender', calRef: b.id, at: new Date().toISOString() });
+  await addTimeEntry(t, { cat: c.cat, sub: c.sub, label: String(b.title || '').slice(0, 120), min: r - pause, start: b.start, end, pause: pause || null, src: 'kalender', calRef: b.id, calSpan: b.start + '-' + b.end, at: new Date().toISOString() });
   logAct('Zeit erfasst: ' + catName(c.cat, c.sub) + ' ' + fmtMin(r - pause), { restore: [snap] });
   showToast('Erfasst: ' + catName(c.cat, c.sub) + ' ' + fmtMin(r - pause) + ' (' + b.start + '–' + end + ').', () => restoreDays([snap])); render();
 }
