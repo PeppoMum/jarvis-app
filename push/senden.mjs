@@ -62,6 +62,8 @@ export async function run({ fetch, webpush, env, jetzt = new Date(), log = conso
   /* Daten */
   const [settings, focus, versand, kasten, google, items, subs] = await Promise.all([
     holen(U + "/meta/settings"), holen(U + "/meta/focus"), holen(U + "/meta/versand"), holen(U + "/meta/kasten"), holen(U + "/meta/google"), alle(U + "/items"), alle(U + "/push")]);
+  log("Prüfung: Nutzer-Nummer " + uid.length + " Zeichen (" + uid.slice(0, 3) + "…" + uid.slice(-3) + ") · gefunden: " +
+    [["Einstellungen", settings], ["Google", google], ["Widget", kasten]].map(([n, v]) => n + " " + (v ? "ja" : "nein")).join(", ") + ", Einträge " + items.length);
   const S = settings || {}, t = isoDate(jetzt), o = ort(S), von = addDays(t, -1), bis = addDays(t, 14);
   /* Termine: über den Google-Zugang der App; geht das nicht (oder gibt es ihn noch nicht), über die geheimen iCal-Adressen */
   const termine = async () => {
