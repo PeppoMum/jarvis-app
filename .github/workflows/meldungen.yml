@@ -11,7 +11,7 @@ permissions:
 jobs:
   senden:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 80
     env:
       TZ: Europe/Berlin
     steps:
@@ -21,7 +21,15 @@ jobs:
           node-version: 20
       - run: npm install --no-save --no-audit --no-fund web-push@3.6.7 ical.js@2.1.0
         working-directory: push
-      - run: node push/senden.mjs
+      - name: Meldungen alle 5 Minuten (gut eine Stunde lang)
+        run: |
+          fehler=0
+          for i in $(seq 1 14); do
+            start=$(date +%s)
+            node push/senden.mjs || fehler=$((fehler+1))
+            [ "$i" -lt 14 ] && sleep $(( 300 - ( $(date +%s) - start ) % 300 ))
+          done
+          [ "$fehler" -lt 3 ]
         env:
           HELFER_PASSWORT: ${{ secrets.HELFER_PASSWORT }}
           VAPID_PRIVAT: ${{ secrets.VAPID_PRIVAT }}
