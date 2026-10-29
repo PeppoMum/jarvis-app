@@ -89,10 +89,10 @@ function trimAutoUnder(list, x) {   // automatische Einträge um den Zeitraum vo
 // Eine Stoppuhr ersetzt einen überlappenden Kalender-Eintrag desselben Bereichs ganz (sie ist die echte Messung dieses Termins).
 const entryRank = e => e.calRef || e.src === 'kalender' ? 1 : isAutoEntry(e) ? 2 : 3;
 const overlaps = (a, b) => a && b && a[0] < b[1] && b[0] < a[1];
-function mergeEntry(list, x) {
+function mergeEntry(list, x, fill) {   // fill: von Hand bestätigter Termin („So gemacht“) füllt nur die Lücken
   const sp = spanOf(x), R = entryRank(x);
   if (!sp) return { list: list.concat([x]), added: [x], clipped: false };
-  if (R === 1 && list.some(e => e.cat === x.cat && entryRank(e) === 2 && overlaps(spanOf(e), sp))) return { list, added: [], clipped: true };
+  if (R === 1 && !fill && list.some(e => e.cat === x.cat && entryRank(e) === 2 && overlaps(spanOf(e), sp))) return { list, added: [], clipped: true };
   list = list.flatMap(e => { const r = spanOf(e); if (!r || entryRank(e) >= R || !overlaps(r, sp)) return [e]; if (R === 2 && entryRank(e) === 1 && e.cat === x.cat) return []; return freeParts(r, [x]).map((p, i) => partEntry(e, p, i)); });
   if (R === 3) return { list: list.concat([x]), added: [x], clipped: false };
   const parts = freeParts(sp, list.filter(e => entryRank(e) >= R));
@@ -111,9 +111,9 @@ function applyDayPause(list, cat) {
   need = Math.min(need, tgt.min);
   return list.map(e => e === tgt ? { ...e, min: e.min - need, pause: (Number(e.pause) || 0) + need, autoPause: need } : e);
 }
-async function addTimeEntry(d, e) {
+async function addTimeEntry(d, e, fill) {
   const x = { id: uid(), ...e, cat: catId(e.cat) }; delete x.date;
-  const m = mergeEntry(rawEntries(d), x);
+  const m = mergeEntry(rawEntries(d), x, fill);
   if (spanOf(x) && entryRank(x) < 3 && !m.added.length) return null;   // war schon erfasst
   const list = applyDayPause(m.list, x.cat);
   await saveDay(d, list);
@@ -625,7 +625,7 @@ function planVsDone(from, to) {
       const c = blockCat(b); if (!c) return;
       if (d === t && hmToMin(b.end) > now) return;   // läuft noch oder kommt noch
       plan[c.cat] = (plan[c.cat] || 0) + rangeMin(b.start, b.end);
-      const hit = es.some(e => e.calRef === b.id || (e.cat === c.cat && (!e.start || !e.end || (e.start < b.end && e.end > b.start))));
+      const hit = blockDone(b, c, es);
       if (!hit && !skip.includes(d + ':' + b.id)) missed.push({ b, c, d });
     });
   }
@@ -740,14 +740,27 @@ function timeAskList() {
 function timeOpenToday() {
   const t = todayISO(), now = hmToMin(nowHM()), skip = tskipRead(), es = dayEntries(t);
   return blocksOn(t).filter(b => b.start && b.end && hmToMin(b.end) <= now).map(b => ({ b, c: blockCat(b) }))
-    .filter(x => x.c && !skip.includes(t + ':' + x.b.id) && !es.some(e => e.calRef === x.b.id || (e.start && e.end && hmToMin(e.start) < hmToMin(x.b.end) && hmToMin(e.end) > hmToMin(x.b.start))));
+    .filter(x => x.c && !skip.includes(t + ':' + x.b.id) && !blockDone(x.b, x.c, es));
+}
+// Ist ein Kalender-Termin schon als Zeit erfasst? Ja, wenn er selbst erfasst ist, im selben Bereich eine Zeit ohne Uhrzeit steht,
+// derselbe Bereich ihn fast ganz abdeckt (bis auf 10 Min.) oder andere Zeiten mindestens die Hälfte belegen (z. B. Seminar während der Arbeit).
+// Eine kurze Stoppuhr mitten im Termin zählt also nicht als „erfasst“; „So gemacht“ füllt dann nur die Lücken.
+function blockCover(b, c, es) {
+  const sp = [hmToMin(b.start), hmToMin(b.end)], len = sp[1] - sp[0], left = list => freeParts(sp, list).reduce((a, [x, y]) => a + y - x, 0);
+  return { len, same: len - left(es.filter(e => e.cat === c.cat)), any: len - left(es) };
+}
+function blockDone(b, c, es) {
+  if (es.some(e => e.calRef === b.id || (e.cat === c.cat && (!e.start || !e.end)))) return true;
+  const v = blockCover(b, c, es);
+  return v.same >= v.len - 10 || v.any * 2 >= v.len;
 }
 async function timeFromBlock(id, day, quiet) {
   const t = day || todayISO(), x = day ? (() => { const b = blocksOn(day).find(b => b.id === id), c = blockCat(b); return b && c ? { b, c } : null; })() : timeAskList().find(x => x.b.id === id); if (!x) return;
   const r = rangeMin(x.b.start, x.b.end), pause = catOf(x.c.cat).pause ? autoPauseMin(r) : 0, snap = daySnap(t);
-  await addTimeEntry(t, { cat: x.c.cat, sub: x.c.sub, label: String(x.b.title || '').slice(0, 120), min: r - pause, start: x.b.start, end: x.b.end, pause: pause || null, src: 'kalender', calRef: x.b.id, calSpan: x.b.start + '-' + x.b.end, at: new Date().toISOString() });
-  const txt = catName(x.c.cat, x.c.sub) + ' ' + fmtMin(r - pause) + ' (' + x.b.start + '–' + x.b.end + ')';
+  const got = await addTimeEntry(t, { cat: x.c.cat, sub: x.c.sub, label: String(x.b.title || '').slice(0, 120), min: r - pause, start: x.b.start, end: x.b.end, pause: pause || null, src: 'kalender', calRef: x.b.id, calSpan: x.b.start + '-' + x.b.end, at: new Date().toISOString() }, !quiet);
   if (quiet) return;
+  if (!got) { showToast('Diese Zeit ist schon ganz erfasst.'); return; }
+  const txt = catName(x.c.cat, x.c.sub) + ' ' + fmtMin(got.min) + (got.clipped ? ' dazu (nur was noch fehlte, ' : ' (') + x.b.start + '–' + x.b.end + ')';
   logAct('Zeit erfasst: ' + txt, { restore: [snap] });
   showToast('Erfasst: ' + txt + '.', () => restoreDays([snap]));
 }
