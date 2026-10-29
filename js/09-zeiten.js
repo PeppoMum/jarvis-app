@@ -589,7 +589,11 @@ function blockCat(b) {
   if (b.kind === 'class') r = { cat: 'uni', sub: null };
   else if (b.kind === 'work') r = { cat: 'arbeit', sub: null };
   else if (isTeamBlock(b)) r = { cat: 'ehrenamt', sub: /spiel|turnier|match|twingame/i.test(b.title || '') ? 'Spiel' : /training/i.test(b.title || '') ? 'Training' : null };
-  else r = guessCat(b.title || '') || ({ uni: { cat: 'uni' }, arbeit: { cat: 'arbeit' }, team: { cat: 'ehrenamt' } }[b.area] || null);
+  else {
+    r = guessCat(b.title || '');
+    if (r && r.bySub && UNI_HINT.test((b.title || '') + ' ' + (b.place || ''))) r = null;   // „N2 Vorbereitung Praxissemester“ ist Uni, kein Ehrenamt › Vorbereitung
+    r = r || ({ uni: { cat: 'uni' }, arbeit: { cat: 'arbeit' }, team: { cat: 'ehrenamt' } }[b.area] || null);
+  }
   if (!r && UNI_HINT.test((b.title || '') + ' ' + (b.place || ''))) r = { cat: 'uni', sub: null };
   if (!r) return null;
   const c = visCats().find(x => x.id === r.cat); if (!c) return null;
@@ -734,11 +738,12 @@ function timeAskList() {
   return blocksOn(t).filter(b => b.start && b.end && hmToMin(b.end) <= now).map(b => ({ b, c: blockCat(b) }))
     .filter(x => x.c && !skip.includes(t + ':' + x.b.id) && !es.some(e => e.calRef === x.b.id || (e.start && e.end && hmToMin(e.start) < hmToMin(x.b.end) && hmToMin(e.end) > hmToMin(x.b.start))));
 }
-async function timeFromBlock(id, day) {
+async function timeFromBlock(id, day, quiet) {
   const t = day || todayISO(), x = day ? (() => { const b = blocksOn(day).find(b => b.id === id), c = blockCat(b); return b && c ? { b, c } : null; })() : timeAskList().find(x => x.b.id === id); if (!x) return;
   const r = rangeMin(x.b.start, x.b.end), pause = catOf(x.c.cat).pause ? autoPauseMin(r) : 0, snap = daySnap(t);
-  await addTimeEntry(t, { cat: x.c.cat, sub: x.c.sub, label: String(x.b.title || '').slice(0, 120), min: r - pause, start: x.b.start, end: x.b.end, pause: pause || null, src: 'kalender', calRef: x.b.id, at: new Date().toISOString() });
+  await addTimeEntry(t, { cat: x.c.cat, sub: x.c.sub, label: String(x.b.title || '').slice(0, 120), min: r - pause, start: x.b.start, end: x.b.end, pause: pause || null, src: 'kalender', calRef: x.b.id, calSpan: x.b.start + '-' + x.b.end, at: new Date().toISOString() });
   const txt = catName(x.c.cat, x.c.sub) + ' ' + fmtMin(r - pause) + ' (' + x.b.start + '–' + x.b.end + ')';
+  if (quiet) return;
   logAct('Zeit erfasst: ' + txt, { restore: [snap] });
   showToast('Erfasst: ' + txt + '.', () => restoreDays([snap]));
 }

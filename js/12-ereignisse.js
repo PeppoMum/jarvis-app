@@ -154,7 +154,9 @@ document.addEventListener('click', async (ev) => {
     case 'cleanall': if (S.clean && S.clean.list) { S.clean.list.forEach(x => x.on = x.cat === 'spam' || x.cat === 'werbung'); render(); } break;
     case 'cleannone': if (S.clean && S.clean.list) { S.clean.list.forEach(x => x.on = false); render(); } break;
     case 'tcancel': S.timeEdit = null; render(); break;
-    case 'tdel': { const e = S.timeEdit; if (!e) break; const snap = daySnap(e.date); S.timeEdit = null; await removeTimeEntry(e.id, e.date); showToast('Gelöscht.', () => restoreDays([snap])); break; }
+    case 'tdel': { const e = S.timeEdit; if (!e) break; const snap = daySnap(e.date); S.timeEdit = null; await removeTimeEntry(e.id, e.date);
+      if (e.calRef) try { localStorage.setItem('jarvis.tskip', JSON.stringify(tskipRead().concat([e.date + ':' + e.calRef]).slice(-100))); } catch (x) {}   // gelöschte Kalender-Zeit kommt nicht wieder
+      showToast('Gelöscht.', () => restoreDays([snap])); break; }
     case 'catadd': { const f = el.closest('form'), c = readCatForm(f); c.push({ id: 'c' + uid().slice(-6), name: '', color: 'g', goal: null, subs: [], words: [] }); S.catDraft = c; render(); break; }
     case 'catreset': S.catDraft = null; render(); break;
     case 'texcsv': exportTimes('csv'); break;
@@ -259,7 +261,7 @@ document.addEventListener('submit', async (ev) => {
     const e = S.timeEdit; if (!e) return;
     const r = readTimeForm(new FormData(f), true); if (r.err) { showToast(r.err); return; }
     const snaps = [daySnap(e.date)].concat(r.date !== e.date ? [daySnap(r.date)] : []);
-    const upd = { ...e, ...r.e }; delete upd.date;
+    const upd = { ...e, ...r.e, hand: e.calRef ? true : null }; delete upd.date;   // von Hand bearbeitet: folgt nicht mehr dem Kalender
     S.timeEdit = null;
     if (r.date === e.date) await saveDay(e.date, rawEntries(e.date).map(x => x.id === e.id ? upd : x));
     else { await removeTimeEntry(e.id, e.date); await addTimeEntry(r.date, upd); }
