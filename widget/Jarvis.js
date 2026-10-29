@@ -3,10 +3,10 @@
 // (Mehr › Einstellungen › Meldungen › Widget einrichten).
 //
 // Als Widget: zeigt Termine, Losfahren, Aufgaben, Wetter, Woche und die laufende Zeit. Antippen öffnet das Menü.
-// Aus Kurzbefehlen (Aktion „Skript ausführen“, Parameter):  start · start:uni · pause · stopp · notiz:<Text>
-// Ohne Parameter in Scriptable geöffnet: Menü mit Arbeit starten, Pause, Feierabend, Notiz.
+// Aus Kurzbefehlen (Aktion „Skript ausführen“, Parameter):  start · start:uni · pause · stopp · notiz:<Text> · claude
+// Ohne Parameter in Scriptable geöffnet: Menü mit Arbeit starten, Pause, Feierabend, Notiz, Claude öffnen.
 
-const KEY = "jarvis.cfg", LAST = "jarvis.last", CACHE = "jarvis.widget";
+const KEY = "jarvis.cfg", LAST = "jarvis.last", CACHE = "jarvis.widget", CLAUDE = "jarvis.claude";
 const FARBEN = {
   rotgold: { l: { bg: "#F4EFE7", card: "#FFFFFF", tx: "#1E1714", mu: "#685847", ac: "#8F5F0F", st: "#C8322B", onst: "#FFFFFF" }, d: { bg: "#0F0C0B", card: "#1B1513", tx: "#F3E9D8", mu: "#BFAE90", ac: "#E8B04B", st: "#C8322B", onst: "#FFF6EC" } },
   stealth: { l: { bg: "#EDEFF2", card: "#FFFFFF", tx: "#111417", mu: "#5B6670", ac: "#2B3138", st: "#C8222A", onst: "#FFFFFF" }, d: { bg: "#0B0C0E", card: "#17191C", tx: "#EEF1F4", mu: "#A3ACB5", ac: "#C8D0D8", st: "#C8222A", onst: "#FFFFFF" } },
@@ -61,11 +61,28 @@ async function auftrag(c, p) {
   const ok = await senden(c, art, extra);
   return ok ? satz + " Jarvis übernimmt das, sobald die App offen ist." : "Das ging gerade nicht. Bitte nochmal versuchen.";
 }
+/* ---------- Claude öffnen (Link zum Planungs-Projekt, wird einmal eingefügt und gemerkt) ---------- */
+const istClaudeLink = (t) => /^https:\/\/claude\.ai\/\S+$/.test(String(t || "").trim());
+async function claudeLink(neu) {
+  if (!neu && Keychain.contains(CLAUDE)) return Keychain.get(CLAUDE);
+  const a = new Alert(); a.title = "Claude-Projekt";
+  a.message = "Füge den Link zu deinem Planungs-Projekt in Claude ein. Den Link bekommst du in Claude im Projekt über „Teilen“ oder oben aus der Adresszeile.";
+  const z = Pasteboard.pasteString() || ""; a.addTextField("https://claude.ai/…", istClaudeLink(z) ? z.trim() : (Keychain.contains(CLAUDE) ? Keychain.get(CLAUDE) : ""));
+  a.addAction("Speichern"); a.addCancelAction("Abbrechen");
+  if (await a.presentAlert() === -1) return null;
+  const t = a.textFieldValue(0).trim();
+  if (!istClaudeLink(t)) { await hinweis("Das hat nicht geklappt", "Der Link muss mit https://claude.ai/ anfangen."); return null; }
+  Keychain.set(CLAUDE, t); return t;
+}
+async function claudeOeffnen() { const u = await claudeLink(false); if (u) Safari.open(u); }
+
 async function menue(c) {
   const a = new Alert(); a.title = "Jarvis";
-  ["Arbeit starten", "Uni starten", "Pause / weiter", "Feierabend (Stopp)", "Notiz diktieren", "Einrichtung ändern"].forEach((x) => a.addAction(x)); a.addCancelAction("Abbrechen");
-  const i = await a.presentSheet(); if (i === -1) return;
-  if (i === 5) { await einrichten(); return; }
+  ["Arbeit starten", "Uni starten", "Pause / weiter", "Feierabend (Stopp)", "Notiz diktieren", "Claude öffnen", "Claude-Link ändern", "Einrichtung ändern"].forEach((x) => a.addAction(x)); a.addCancelAction("Abbrechen");
+  const i = await a.presentSheet(); if (i === -1) return "zu";
+  if (i === 5) { await claudeOeffnen(); return "zu"; }
+  if (i === 6) { if (await claudeLink(true)) await hinweis("Gespeichert", "„Claude öffnen“ führt jetzt zu diesem Link."); return; }
+  if (i === 7) { await einrichten(); return; }
   let p = ["start", "start:uni", "pause", "stopp"][i];
   if (i === 4) { let t = ""; try { t = await Dictation.start("de-DE"); } catch (e) { }
     if (!t) { const b = new Alert(); b.title = "Notiz"; b.addTextField("z. B. Einkauf: Milch, Brot"); b.addAction("Senden"); b.addCancelAction("Abbrechen"); if (await b.presentAlert() === -1) return; t = b.textFieldValue(0); }
@@ -191,13 +208,19 @@ let c = cfg();
 if (config.runsInWidget) {
   Script.setWidget(bauen(c ? await laden(c) : null, config.widgetFamily));
 } else if (args.shortcutParameter != null && args.shortcutParameter !== "") {
-  if (!c) Script.setShortcutOutput("Jarvis ist noch nicht eingerichtet. Öffne das Skript einmal in Scriptable.");
-  else Script.setShortcutOutput(await auftrag(c, typeof args.shortcutParameter === "string" ? args.shortcutParameter : JSON.stringify(args.shortcutParameter)));
+  // Kommt der Parameter als Liste oder mit Leerzeilen an (z. B. über die Aktion „Text“), zählt nur der Text selbst
+  let p = args.shortcutParameter; if (Array.isArray(p)) p = p.join(" "); p = typeof p === "string" ? p.trim() : JSON.stringify(p);
+  if (/^claude/i.test(p)) { const u = Keychain.contains(CLAUDE) ? Keychain.get(CLAUDE) : null;
+    if (u) { Safari.open(u); Script.setShortcutOutput("Claude geht auf."); } else Script.setShortcutOutput("Der Claude-Link fehlt noch. Öffne Jarvis in Scriptable und wähle „Claude-Link ändern“."); }
+  else if (!c) Script.setShortcutOutput("Jarvis ist noch nicht eingerichtet. Öffne das Skript einmal in Scriptable.");
+  else Script.setShortcutOutput(await auftrag(c, p));
+} else if (args.queryParameters.claude) {
+  await claudeOeffnen();
 } else {
   if (!c) c = await einrichten();
   if (c) {
-    if (config.runsInApp && !args.queryParameters.vorschau) await menue(c);
-    const d = await laden(c); const w = bauen(d, "medium"); await w.presentMedium();
+    const zu = config.runsInApp && !args.queryParameters.vorschau ? await menue(c) : null;
+    if (zu !== "zu") { const d = await laden(c); const w = bauen(d, "medium"); await w.presentMedium(); }
   }
 }
 Script.complete();
