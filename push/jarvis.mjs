@@ -68,7 +68,7 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
     const off = offOn(s);
     if (off) out.push({ id: off.id, kind: "off", title: off.title || (off.kind === "urlaub" ? "Urlaub" : "Frei"), start: null, end: null, area: "alltag", date: s, src: off });
     const hol = holidayOn(s); if (hol && !off) out.push({ id: "h:" + s, kind: "holiday", title: hol, start: null, end: null, date: s });
-    gcal.filter((g) => g.date === s && !linked.some((l) => g.gid === l || g.gid.startsWith(l + "_"))).forEach((g) => out.push({ id: "g:" + g.gid, kind: "google", title: g.title, start: g.start, end: g.end, area: g.area || null, place: g.place, date: s, calName: g.calName }));
+    gcal.filter((g) => g.date === s && !linked.some((l) => g.gid === l || g.gid.startsWith(l + "_"))).forEach((g) => out.push({ id: "g:" + g.gid, kind: "google", title: g.title, start: g.start, end: g.end, area: g.area || null, place: g.place, date: s, calName: g.calName, cockpit: !!g.cockpit || /trainer-cockpit/i.test(g.calName || ""), abf: g.abf || null, abfMin: g.abfMin || null }));
     return out.sort((a, b) => (hmToMin(a.start) ?? -1) - (hmToMin(b.start) ?? -1));
   }
   const isTeamBlock = (b) => b.area === "team" || /training|spiel|turnier|twingame/i.test(b.title || "");
@@ -150,6 +150,7 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
   const wxAt = (d, hm) => { const h = pad(Math.floor((hmToMin(hm) || 0) / 60)) + ":00"; return (wetter && wetter.hourly || []).find((w) => w.date === d && w.hm === h) || null; };
   function travelFor(b) {
     if (!b.start || (b.src && b.src.planned)) return 0;
+    if (b.cockpit) return b.abf ? (b.abfMin || Math.max(0, hmToMin(b.start) - hmToMin(b.abf))) : 0;   // Fußball-App: nur was in der Beschreibung steht
     const hay = ((b.kind === "class" ? "vorlesung " : "") + (b.kind === "work" ? "büro " : "") + (isTeamBlock(b) ? "training " : "") + (b.title || "") + " " + (b.place || "")).toLowerCase();
     if (/homeoffice|online|zoom|digital/.test(hay)) return 0;
     let best = 0;
@@ -159,6 +160,8 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
   function departures(d) {
     const bl = blocksOn(d).filter((b) => b.start).sort((a, b) => a.start.localeCompare(b.start)), out = [];
     bl.forEach((b, i) => {
+      /* Fußball-App: genau die Uhrzeit aus „Abfahrt:“ nehmen, ohne Zeile (Trainings) gar keine Losfahr-Zeit */
+      if (b.cockpit) { if (b.abf) { const w = wxAt(d, b.start); out.push({ b, tr: travelFor(b), at: b.abf, wet: !!(w && Number(w.rain) >= 50), fix: true }); } return; }
       const tr = travelFor(b); if (!tr) return;
       const s = hmToMin(b.start), prev = bl.slice(0, i).filter((x) => x.end && hmToMin(x.end) > s - tr - 30 && hmToMin(x.end) <= s);
       if (prev.length) return;

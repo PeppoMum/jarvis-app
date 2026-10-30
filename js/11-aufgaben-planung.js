@@ -226,6 +226,7 @@ function classWeekOk(c, iso) {
 // Fahrzeit (eine Strecke, Minuten) für einen Termin anhand der Stichwörter in den Einstellungen
 function travelFor(b) {
   if (!b.start || (b.src && b.src.planned)) return 0;
+  if (b.cockpit) return b.abf ? (b.abfMin || Math.max(0, hmToMin(b.start) - hmToMin(b.abf))) : 0;   // Fußball-App: nur was in der Beschreibung steht
   const hay = ((b.kind === 'class' ? 'vorlesung ' : '') + (b.kind === 'work' ? 'büro ' : '') + (isTeamBlock(b) ? 'training ' : '') + (b.title || '') + ' ' + (b.place || '')).toLowerCase();
   if (/homeoffice|online|zoom|digital/.test(hay)) return 0;
   let best = 0;
@@ -236,6 +237,8 @@ function travelFor(b) {
 function departures(iso) {
   const bl = blocksOn(iso).filter(b => b.start).sort((a, b) => a.start.localeCompare(b.start)), out = [];
   bl.forEach((b, i) => {
+    // Fußball-App: genau die Uhrzeit aus „Abfahrt:“ nehmen, ohne Zeile (Trainings) gar keine Losfahr-Zeit
+    if (b.cockpit) { if (b.abf) { const w = wxAt(iso, b.start); out.push({ b, tr: travelFor(b), at: b.abf, wet: !!(w && Number(w.rain) >= 50), fix: true }); } return; }
     const tr = travelFor(b); if (!tr) return;
     const s = hmToMin(b.start), prev = bl.slice(0, i).filter(x => x.end && hmToMin(x.end) > s - tr - 30 && hmToMin(x.end) <= s);
     if (prev.length) return;   // Termin direkt davor: dann ist man schon unterwegs bzw. vor Ort

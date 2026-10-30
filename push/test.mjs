@@ -119,4 +119,20 @@ let x = await echt(std + "=\n");
 assert.equal(x.fehler, null); assert.ok(x.gesendet > 0 && x.versand);
 x = await echt("kaputt");
 assert.match(x.fehler, /VAPID_PRIVAT/); assert.equal(x.gesendet, 0); assert.ok(!x.versand, "darf nicht als gesendet gelten"); assert.ok(x.brief, "Morgenbericht-Text für die App fehlt");
+/* Fußball-App („U13 Trainer-Cockpit“): Losfahren nur aus der Zeile „Abfahrt:“, Trainings ohne diese Zeile gar nicht */
+{
+  const { abfahrtAus, termineAusIcs } = await import("./kalender.mjs");
+  const { jarvis } = await import("./jarvis.mjs");
+  assert.deepEqual(abfahrtAus("Spiel gegen SV Musterstadt\nAbfahrt: 13:25 Uhr (Fahrzeit ca. 10 Min., berechnet)"), { abf: "13:25", abfMin: 10 });
+  assert.deepEqual(abfahrtAus("Treffpunkt Platz<br>Abfahrt: 9.05 Uhr"), { abf: "09:05", abfMin: null });
+  assert.deepEqual(abfahrtAus("Training: 17:00 – 18:30 Uhr"), { abf: null, abfMin: null });
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;TZID=Europe/Berlin:20261107T140000\nDTEND;TZID=Europe/Berlin:20261107T160000\nUID:sp1@google.com\nSUMMARY:Spiel U13\nLOCATION:Sportplatz Nord\nDESCRIPTION:Anstoß 14:00\\nAbfahrt: 13:25 Uhr (Fahrzeit ca. 10 Min.\\, berechnet)\nEND:VEVENT\nBEGIN:VEVENT\nDTSTART;TZID=Europe/Berlin:20261107T163000\nDTEND;TZID=Europe/Berlin:20261107T183000\nUID:tr2@google.com\nSUMMARY:Training U13\nDESCRIPTION:Training: 17:00 – 18:30 Uhr\nEND:VEVENT\nEND:VCALENDAR`;
+  const tc = termineAusIcs(ics, "2026-11-07", "2026-11-07", "U13 Trainer-Cockpit");
+  assert.equal(tc.find((g) => g.title === "Spiel U13").abf, "13:25");
+  const anders = { gid: "x1", date: "2026-11-07", start: "21:00", end: "22:00", title: "Training Kumpel", place: "Sportplatz", calName: "Google" };
+  const J = jarvis({ items: [], settings: {}, gcal: tc.concat(anders), jetzt: new Date("2026-11-07T08:00:00") });
+  const dep = J.departures("2026-11-07");
+  assert.deepEqual(dep.map((x) => [x.b.title, x.at]), [["Spiel U13", "13:25"], ["Training Kumpel", "20:40"]], JSON.stringify(dep.map((x) => [x.b.title, x.at])));
+  console.log("Fußball-App: Spiel 13:25 aus der Beschreibung, Training ohne Losfahren, andere Kalender wie bisher.\n");
+}
 console.log("Alle Proben bestanden.");

@@ -99,6 +99,17 @@ async function mealShop() {
 
 /* ===================== Zusatzkalender & Geburtstage ===================== */
 const TEAM_CAL = { id: '6bccee518a54346e36d10361e101db6e07df969a5944171e66c8e9ea20758656@group.calendar.google.com', name: 'U13 Trainer-Cockpit', area: 'team' };
+// Termine aus der Fußball-App (Kalender „U13 Trainer-Cockpit“): Losfahr-Zeit nur aus der Zeile „Abfahrt: 13:25 Uhr (Fahrzeit ca. 10 Min., …)“ der Beschreibung
+const isCockpitCal = c => !!c && (c.id === TEAM_CAL.id || /trainer-cockpit/i.test(c.name || ''));
+function abfahrtAus(desc) {
+  const txt = String(desc || '').replace(/<br\s*\/?>|<\/(p|div|li)>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
+  for (const z of txt.split(/\r?\n/)) {
+    const m = /^\s*Abfahrt:\s*(\d{1,2})[:.](\d{2})/i.exec(z); if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) continue;
+    const f = /Fahrzeit\D{0,8}?(\d+)\s*Min/i.exec(z);
+    return { abf: m[1].padStart(2, '0') + ':' + m[2], abfMin: f ? Number(f[1]) : null };
+  }
+  return { abf: null, abfMin: null };
+}
 const calLabel = b => b.calName === 'U13 Trainer-Cockpit' ? 'Cockpit' : (b.calName || 'Google');
 function extraCals() { return Array.isArray(S.settings.extraCals) ? S.settings.extraCals : [TEAM_CAL]; }
 // Geburtstag: { type:'birthday', name, md:'MM-DD', year? } – wiederholt sich jedes Jahr, landet nicht im Kalender
