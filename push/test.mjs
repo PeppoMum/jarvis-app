@@ -65,7 +65,7 @@ function fakeFetch(state) {
 const lauf = async (zeit, state = { writes: [] }) => {
   const logs = [];
   const r = await run({ fetch: fakeFetch(state), env: { KALENDER_ICAL: "https://ical.example/x.ics" }, jetzt: new Date(zeit), cfg: { projectId: "p", apiKey: "k", uid: "phil" }, probe: true, log: (x) => logs.push(x) });
-  return { keys: r.dran.map((d) => d.key), dran: r.dran, logs };
+  return { keys: r.dran.map((d) => d.key), dran: r.dran, logs, J: r.J };
 };
 
 /* Dienstag 3.11.: Morgenbericht 6:45 */
@@ -134,5 +134,11 @@ assert.match(x.fehler, /VAPID_PRIVAT/); assert.equal(x.gesendet, 0); assert.ok(!
   const dep = J.departures("2026-11-07");
   assert.deepEqual(dep.map((x) => [x.b.title, x.at]), [["Spiel U13", "13:25"], ["Training Kumpel", "20:40"]], JSON.stringify(dep.map((x) => [x.b.title, x.at])));
   console.log("Fußball-App: Spiel 13:25 aus der Beschreibung, Training ohne Losfahren, andere Kalender wie bisher.\n");
+}
+/* Woche im Widget: Termine von Montag/Dienstag zählen auch am Donnerstag noch mit */
+{
+  const r = await lauf("2026-11-05T10:00:00");
+  const ws = r.J.weekStats("2026-11-02");
+  assert.ok(ws.days.find((d) => d.date === "2026-11-03").h >= 3, "Dienstag fehlt in der Woche: " + JSON.stringify(ws.days));
 }
 console.log("Alle Proben bestanden.");
