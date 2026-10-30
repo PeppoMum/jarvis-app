@@ -2,7 +2,8 @@
    Prüft, dass zur richtigen Uhrzeit die richtige Meldung kommt und keine doppelt. */
 process.env.TZ = "Europe/Berlin";
 import assert from "node:assert/strict";
-import { run, zuFs } from "./senden.mjs";
+import crypto from "node:crypto";
+import { run, zuFs, vapidSchluessel } from "./senden.mjs";
 
 const ICS = `BEGIN:VCALENDAR
 VERSION:2.0
@@ -98,4 +99,24 @@ r = await lauf("2026-11-07T09:02:00"); assert.ok(r.keys.includes("morgen:2026-11
 r = await lauf("2026-11-08T18:50:00");
 const wp = r.dran.find((d) => d.key.startsWith("woche")); assert.ok(wp); console.log(wp.msg.t + "\n" + wp.msg.b + "\n");
 assert.match(wp.msg.b, /Hausarbeit Gliederung \(Do\)/); assert.match(wp.msg.b, /Sehr voll: Di 12 Std\./);
+
+/* Geheimnis VAPID_PRIVAT: kleine Tippfehler beim Eintragen werden verziehen, ein falscher Schlüssel stoppt den Rest nicht */
+const e = crypto.createECDH("prime256v1"); e.generateKeys();
+const priv = e.getPrivateKey().toString("base64url"), pub = e.getPublicKey().toString("base64url"), std = e.getPrivateKey().toString("base64");
+for (const v of [priv, " " + priv + "\n", std, std + "=", '"' + priv + '"', "VAPID_PRIVAT = " + priv, JSON.stringify({ publicKey: pub, privateKey: priv })])
+  assert.equal(vapidSchluessel(v, pub), priv, "Schlüssel nicht erkannt: " + v);
+assert.equal(vapidSchluessel("abc", pub), null); assert.equal(vapidSchluessel(undefined, pub), null);
+const echt = async (VAPID_PRIVAT) => {
+  const state = { writes: [] }, ff = fakeFetch(state), gesendet = [];
+  const fetch = (url, o) => url.includes("identitytoolkit") ? Promise.resolve({ ok: true, status: 200, json: async () => ({ idToken: "x" }) })
+    : url.endsWith("/push?pageSize=300") ? Promise.resolve({ ok: true, status: 200, json: async () => ({ documents: [doc("users/phil/push/g1", { e: "https://push.example/1", p: "p", a: "a" })] }) }) : ff(url, o);
+  const webpush = { setVapidDetails: (s, p, k) => { if (!/^[A-Za-z0-9_-]{43}$/.test(k)) throw new Error("Vapid private key must be a URL safe Base 64 (without \"=\")"); }, sendNotification: async () => { gesendet.push(1); } };
+  let fehler = null;
+  try { await run({ fetch, webpush, env: { HELFER_PASSWORT: "x", VAPID_PRIVAT, KALENDER_ICAL: "https://ical.example/x.ics" }, jetzt: new Date("2026-11-03T06:50:00"), cfg: { projectId: "p", apiKey: "k", uid: "phil" }, vapidPub: pub, log: () => { } }); } catch (x) { fehler = x.message; }
+  return { fehler, gesendet: gesendet.length, versand: state.writes.some((w) => w[0] === "meta/versand"), brief: state.writes.some((w) => w[0] === "meta/brief") };
+};
+let x = await echt(std + "=\n");
+assert.equal(x.fehler, null); assert.ok(x.gesendet > 0 && x.versand);
+x = await echt("kaputt");
+assert.match(x.fehler, /VAPID_PRIVAT/); assert.equal(x.gesendet, 0); assert.ok(!x.versand, "darf nicht als gesendet gelten"); assert.ok(x.brief, "Morgenbericht-Text für die App fehlt");
 console.log("Alle Proben bestanden.");
