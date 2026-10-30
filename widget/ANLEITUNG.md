@@ -23,9 +23,10 @@ Dauert etwa 5 Minuten. Du brauchst die kostenlose App **Scriptable** aus dem App
 3. Das neue Widget lange drücken, **Widget bearbeiten**:
    - Script: **Jarvis**
    - When Interacting: **Run Script**
-4. Fertig. Tippst du aufs Widget, kommt das Menü mit Arbeit starten, Pause, Feierabend und Notiz.
+4. Fertig. Tippst du aufs Widget, kommt das Menü mit Arbeit starten, Pause, Feierabend, Notiz und Claude öffnen.
 
 ## Gut zu wissen
+- Neue Fassung des Skripts: in der Jarvis-App wieder auf **Widget-Skript kopieren**, in Scriptable das Skript **Jarvis** öffnen, alles markieren und durch das Neue ersetzen. Der Einrichtungs-Code bleibt gespeichert.
 - Das Widget frischt sich etwa alle 15 Minuten auf (das bestimmt das iPhone). Unten rechts steht, von wann der Stand ist.
 - Die Farbe nimmt es aus deinen Jarvis-Einstellungen. Hell oder dunkel richtet sich nach deinem iPhone.
 - Den Einrichtungs-Code nicht weitergeben: Wer ihn hat, sieht deine Termine im Widget.

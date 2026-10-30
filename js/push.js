@@ -151,7 +151,7 @@ function pageMeldungen() {
       chk('unwetter', 'Amtliche Unwetterwarnungen') + chk('gewohnheit', 'Erinnerungen an Gewohnheiten') + chk('aufgabe', 'Erinnerungen an Aufgaben') +
       '<p class="sub">In der Ruhezeit (Hinweise › Ruhezeit) kommen keine Hinweise, nur starke Unwetterwarnungen. Die Berichte kommen immer zu ihrer Uhrzeit.</p></section>' +
     '<section class="card"><h2 class="label">Widget und Kurzbefehle</h2>' +
-      '<p>Mit der kostenlosen App <b>Scriptable</b> bekommst du Jarvis als Widget auf den Home-Bildschirm. Dazu kommen Kurzbefehle für Siri: <b>Arbeit starten</b>, <b>Pause</b>, <b>Feierabend</b> und <b>Jarvis notieren</b>.</p>' +
+      '<p>Mit der kostenlosen App <b>Scriptable</b> bekommst du Jarvis als Widget auf den Home-Bildschirm. Dazu kommen Kurzbefehle für Siri: <b>Arbeit starten</b>, <b>Pause</b>, <b>Feierabend</b>, <b>Jarvis notieren</b> und <b>Claude öffnen</b>.</p>' +
       (kastenKey ? '<div class="row"><button class="btn" data-push="code">' + (pushShowKey ? 'Code verbergen' : 'Einrichtungs-Code zeigen') + '</button></div>' : '<div class="row"><button class="btn primary" data-push="kasten"' + (pushBusy ? ' disabled' : '') + '>Widget einrichten</button></div>') +
       code + '<div class="row"><button class="btn" data-push="skript">Widget-Skript kopieren</button></div><p class="sub">So geht es: Scriptable öffnen, oben auf +, das Skript einfügen und „Jarvis“ nennen. Einmal starten und den Einrichtungs-Code einfügen. Die genauen Schritte stehen in der Anleitung im Ordner „widget“.</p></section>';
 }
