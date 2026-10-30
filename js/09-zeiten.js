@@ -9,7 +9,7 @@ const DEFAULT_CATS = [
   { id: 'ehrenamt', name: 'Ehrenamt', color: 'team', goal: null, subs: ['Training', 'Spiel', 'Vorbereitung', 'Fahrt'], words: ['ehrenamt', 'verein', 'mannschaft', 'u13', 'trainer'] },
   { id: 'privat', name: 'Privat', color: 'alltag', goal: null, subs: [], words: ['privat', 'sport', 'gym', 'fitness', 'laufen', 'joggen', 'gelaufen', 'gejoggt', 'haushalt', 'freizeit', 'lesen', 'gelesen'] }
 ];
-const SUB_WORDS = { fahrt: ['fahrt', 'gefahren', 'auto', 'zug', 'bahn', 'transit', 'pendel', 'gependelt', 'anfahrt', 'rückfahrt', 'unterwegs', 'bus'], training: ['training', 'trainiert'], spiel: ['spiel', 'turnier', 'match', 'auswärts'], vorbereitung: ['vorbereitung', 'vorbereitet', 'vorbereiten'] };
+const SUB_WORDS = { fahrt: ['fahrt', 'gefahren', 'auto', 'zug', 'bahn', 'transit', 'pendel', 'gependelt', 'anfahrt', 'rückfahrt', 'unterwegs', 'bus'], training: ['training', 'trainiert'], spiel: ['spiel', 'turnier', 'match', 'auswärts'], vorbereitung: ['vorbereitung', 'vorbereitet', 'vorbereiten', 'nachbereitung', 'nachbereitet', 'nachbereiten'] };
 const LEGACY_CAT = { team: 'ehrenamt', alltag: 'privat', freizeit: 'privat' };
 function timeCats() { const c = S.settings.timeCats; return Array.isArray(c) && c.length ? c : DEFAULT_CATS; }
 const visCats = () => timeCats().filter(c => !c.hidden);
@@ -599,6 +599,14 @@ function blockCat(b) {
   const c = visCats().find(x => x.id === r.cat); if (!c) return null;
   return { cat: c.id, sub: r.sub && (c.subs || []).includes(r.sub) ? r.sub : null };
 }
+// Wochen-Ampel und „Std. verplant“: nur Arbeit, Uni und Ehrenamt (alles rund um Fußball). Privates (z. B. Haushalt) und Fahrten zählen nicht.
+const LOAD_CATS = ['arbeit', 'uni', 'ehrenamt'];
+const FUSSBALL_RE = /fußball|fussball|ehrenamt|scouting|sichtung|team-?event|mannschaft|verein|trainer|\bu\d{2}\b/i;
+function countsForLoad(b) {
+  if (!b || isTransit(b)) return false;
+  if (b.cockpit || isTeamBlock(b) || FUSSBALL_RE.test(b.title || '')) return true;
+  const c = blockCat(b); return !!c && LOAD_CATS.includes(c.cat);
+}
 function timeStats(from, to) {
   const t = todayISO(), now = hmToMin(nowHM()), st = {};
   const row = id => st[id] || (st[id] = { done: 0, plan: 0, subs: {} });
@@ -888,7 +896,7 @@ function loadCard() {
   const L = loadLimits(), f = (n, l, v) => '<label class="field"><span>' + l + '</span><input name="' + n + '" type="number" min="0" max="120" step="0.5" value="' + esc(v) + '"></label>';
   return '<section class="card"><h2 class="label">Ampel: Wann ist es zu viel?</h2><form data-form="load" style="display:flex;flex-direction:column;gap:10px"><div class="formgrid">' +
     f('weekY', 'Woche „eng“ ab (Std.)', L.weekY) + f('weekR', 'Woche „überplant“ ab (Std.)', L.weekR) + f('dayY', 'Tag „eng“ ab (Std.)', L.dayY) + f('dayR', 'Tag „überplant“ ab (Std.)', L.dayR) + f('overR', 'Arbeit rot ab Ziel plus (Std.)', L.overR) +
-    '</div><p class="sub">Für die Woche zählt alles, was im Kalender steht: Arbeit, Vorlesungen, Training und Termine. Unter Zeiten wird Arbeit gelb, sobald du über deinem Wochenziel bist, und rot ab Ziel plus dem Wert oben.</p><div class="row"><button class="btn primary" type="submit">Speichern</button></div></form></section>';
+    '</div><p class="sub">Für die Woche zählen nur Arbeit, Uni und Ehrenamt (Training, Spiele, Vor- und Nachbereitung, Team-Events, Scouting). Private Termine wie Haushalt und Fahrten zählen nicht. Unter Zeiten wird Arbeit gelb, sobald du über deinem Wochenziel bist, und rot ab Ziel plus dem Wert oben.</p><div class="row"><button class="btn primary" type="submit">Speichern</button></div></form></section>';
 }
 
 /* ===================== Gewohnheiten ===================== */
