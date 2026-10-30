@@ -92,16 +92,18 @@ export function jetztDran(J, gesendet) {
 }
 
 /* ---------- Daten fürs Handy-Widget ---------- */
+// Bereich eines Termins für den farbigen Strich im Widget (wie im Tagesplan der App)
+const bereich = (x) => ["uni", "arbeit", "team", "alltag"].includes(x.area) ? x.area : /training|spiel|turnier|twingame/i.test(x.title || "") ? "team" : "";
 export function widgetDaten(J, focus) {
   const t = J.t, n = hmToMin(J.nowHM), b = J.taskBuckets(), m = addDays(t, 1);
-  const rest = J.blocksOn(t).filter((x) => x.start && (hmToMin(x.end || x.start) ?? 0) > n).slice(0, 4).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), o: x.place ? String(x.place).slice(0, 30) : "" }));
-  const morgen = J.blocksOn(m).filter((x) => x.start).slice(0, 3).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40) }));
+  const rest = J.blocksOn(t).filter((x) => x.start && (hmToMin(x.end || x.start) ?? 0) > n).slice(0, 4).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), o: x.place ? String(x.place).slice(0, 30) : "", k: bereich(x) }));
+  const morgen = J.blocksOn(m).filter((x) => x.start).slice(0, 3).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), k: bereich(x) }));
   const dep = J.departures(t).find((x) => hmToMin(x.at) >= n - 10);
   const w = J.wxDay(t), ws = J.weekStats(mondayOf(t));
   const hs = J.activeHabits().filter((h) => J.habitDue(h, t));
   return {
     v: 1, at: Date.now(), tag: t, tagText: fmtLong(t), name: J.S.name || "",
-    farbe: J.S.jpal || "rotgold", modus: J.S.mode || "auto",
+    skin: ["smaragd", "glas", "polar"].includes(J.S.skin) ? J.S.skin : "smaragd", modus: J.S.mode || "auto",
     termine: rest, morgen, los: dep ? { at: dep.at, ti: dep.b.title.slice(0, 40) } : null,
     auf: { heute: b.today.length, ueber: b.over.length, top: [...b.over, ...b.today].slice(0, 3).map((x) => x.title.slice(0, 40)) },
     wetter: w ? { hi: w.hi, lo: w.lo, tx: w.phrase, regen: w.rain } : null,
