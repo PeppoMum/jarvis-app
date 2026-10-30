@@ -31,11 +31,11 @@ function evDay(e, iso) {
   return { title: e.title + tag + (iso === e.dateEnd && e.end ? ' bis ' + e.end : ''), start: null, end: null };
 }
 function weekDays(mon) { return Array.from({ length: 7 }, (_, i) => addDays(mon, i)); }
-// Belegte Stunden eines Tages; was sich überschneidet, zählt nur einmal
+// Belegte Stunden eines Tages; was sich überschneidet, zählt nur einmal. Es zählen nur Arbeit, Uni und Ehrenamt (countsForLoad).
 const TRANSIT_RE = /(^|[\s(,:-])(zug|bahn|s-bahn|u-bahn|bus|ice|ic|re ?\d+|rb ?\d+|s ?\d+|fahrt|anfahrt|hinfahrt|rückfahrt|heimfahrt|autofahrt|pendeln|transit|flug|unterwegs)(?=$|[\s),.:!-])/i;
 const isTransit = b => !!b && b.kind !== 'class' && b.kind !== 'work' && TRANSIT_RE.test(b.title || '');
 function dayHours(bl) {
-  bl = bl.filter(b => !isTransit(b));
+  bl = bl.filter(countsForLoad);
   const iv = bl.map(b => [hmToMin(b.start), hmToMin(b.end)]).filter(([a, e]) => a != null && e != null && e > a).sort((x, y) => x[0] - y[0]);
   let sum = 0, cs = -1, ce = -1;
   iv.forEach(([a, e]) => { if (a > ce) { if (ce > cs) sum += ce - cs; cs = a; ce = e; } else ce = Math.max(ce, e); });

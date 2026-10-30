@@ -3,7 +3,7 @@
 /* ===================== Eingangskorb ===================== */
 function weekLoadLine() {
   const ws = weekStats(mondayOf(todayISO()));
-  return 'Wochenauslastung: diese Woche ' + fmtH(ws.total) + ' Std. verplant, Ampel „' + ws.label + '“. Die Ampel zählt ALLES zusammen (Arbeit, Uni, Ehrenamt, Privat), nur Fahrten (Zug, Bus, Auto) nicht: eng ab ' + fmtH(ws.limY) + ' Std., überplant ab ' + fmtH(ws.limR) + ' Std. Das Arbeitsziel (' + fmtH(Number(S.settings.workHours ?? 20)) + ' Std.) gilt nur für die Arbeit und ist keine Wochengrenze. Nenne die Woche nur „eng“ oder „überplant“, wenn die Ampel das sagt.';
+  return 'Wochenauslastung: diese Woche ' + fmtH(ws.total) + ' Std. verplant, Ampel „' + ws.label + '“. Die Ampel zählt nur Arbeit, Uni und Ehrenamt (Fußball) zusammen; Privates (z. B. Haushalt) und Fahrten (Zug, Bus, Auto) zählen nicht: eng ab ' + fmtH(ws.limY) + ' Std., überplant ab ' + fmtH(ws.limR) + ' Std. Das Arbeitsziel (' + fmtH(Number(S.settings.workHours ?? 20)) + ' Std.) gilt nur für die Arbeit und ist keine Wochengrenze. Nenne die Woche nur „eng“ oder „überplant“, wenn die Ampel das sagt.';
 }
 /* ===================== Schnell notieren (ohne KI) ===================== */
 // Die App hat keine KI. Das Eingabefeld erkennt feste Satzmuster und fragt vor dem Speichern nach.
