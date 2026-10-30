@@ -7,6 +7,7 @@
    Geheimnisse (GitHub → Settings → Secrets → Actions): HELFER_PASSWORT, VAPID_PRIVAT, KALENDER_ICAL (eine geheime Adresse pro Zeile), JARVIS_UID. */
 process.env.TZ = "Europe/Berlin";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { jarvis, addDays, isoDate } from "./jarvis.mjs";
 import { jetztDran, widgetDaten } from "./meldungen.mjs";
@@ -15,6 +16,18 @@ import { ort, ladeWetter, ladeWarnungen } from "./wetter.mjs";
 
 export const HELFER = "meldungen@jarvis-app.web.app";
 export const VAPID_PUB = "BE3YlWSHEaFu8BiiRoeciWyj8FMlRonGdILlf_flKBv6tze8Fx3r7qyfzfMZODnM45hrFi2O05cQPxBMR-7_urc";   /* passt zu js/push.js */
+
+/* Geheimer Schlüssel VAPID_PRIVAT: verzeiht Leerzeichen, Zeilenumbrüche, "=" am Ende, + und / statt - und _,
+   Anführungszeichen oder mitkopierten Text drumherum. Genommen wird nur ein Schlüssel, der wirklich zu VAPID_PUB passt. */
+export function vapidSchluessel(roh, pub = VAPID_PUB) {
+  const teile = String(roh || "").replace(/=/g, " ").match(/[A-Za-z0-9+/_-]{40,}/g) || [];
+  for (const t of teile) {
+    const k = t.replace(/\+/g, "-").replace(/\//g, "_");
+    try { const e = crypto.createECDH("prime256v1"); e.setPrivateKey(Buffer.from(k, "base64url"));
+      if (e.getPublicKey().toString("base64url") === pub) return k; } catch (e) { }
+  }
+  return null;
+}
 
 /* ---------- Firestore (REST) ---------- */
 export function vonFs(v) {
@@ -35,7 +48,7 @@ export function zuFs(x) {
 }
 const dok = (d) => { const o = vonFs({ mapValue: { fields: d.fields || {} } }); o.id = o.id || d.name.split("/").pop(); return o; };
 
-export async function run({ fetch, webpush, env, jetzt = new Date(), log = console.log, cfg, probe = false }) {
+export async function run({ fetch, webpush, env, jetzt = new Date(), log = console.log, cfg, probe = false, vapidPub = VAPID_PUB }) {
   const need = probe ? [] : ["HELFER_PASSWORT", "VAPID_PRIVAT"];
   need.forEach((k) => { if (!env[k]) throw new Error("Geheimnis " + k + " fehlt (GitHub → Settings → Secrets and variables → Actions)."); });
   const uid = String(env.JARVIS_UID || cfg.uid || "").trim();
@@ -84,12 +97,16 @@ export async function run({ fetch, webpush, env, jetzt = new Date(), log = conso
   const probeAt = Number(versand && versand.probe) || 0;
   if (probeAt && probeAt > (Number(versand && versand.probeOk) || 0)) dran.push({ key: "probe", msg: { t: "Jarvis", b: "So sehen deine Meldungen aus. Alles eingerichtet.", u: "./#heute", g: "probe" } });
 
-  let ok = 0, fehl = 0; const weg = new Set();
-  if (dran.length && !probe) webpush.setVapidDetails("https://github.com/" + (env.GITHUB_REPOSITORY || "jarvis-app"), VAPID_PUB, env.VAPID_PRIVAT);
+  let ok = 0, fehl = 0, schluesselFehlt = false; const weg = new Set();
+  if (dran.length && !probe) {
+    const priv = vapidSchluessel(env.VAPID_PRIVAT, vapidPub);
+    if (priv) webpush.setVapidDetails("https://github.com/" + (env.GITHUB_REPOSITORY || "jarvis-app"), vapidPub, priv);
+    else { schluesselFehlt = true; log("Geheimnis VAPID_PRIVAT passt nicht (" + String(env.VAPID_PRIVAT).trim().length + " Zeichen statt 43). Neu eintragen: GitHub → Settings → Secrets and variables → Actions → VAPID_PRIVAT. Meldungen werden aufgehoben und nachgeholt."); }
+  }
   for (const d of dran) {
     if (probe) { log("— " + d.key + " —\n" + d.msg.t + "\n" + d.msg.b + "\n"); continue; }
     const msg = JSON.stringify(d.msg), seen = new Set();
-    for (const s of subs) {
+    for (const s of (schluesselFehlt ? [] : subs)) {
       if (weg.has(s.id) || !s.e || seen.has(s.e) || s.aus === true) continue; seen.add(s.e);
       try { await webpush.sendNotification({ endpoint: s.e, keys: { p256dh: s.p, auth: s.a } }, msg, { TTL: 3 * 3600, urgency: "high" }); ok++; }
       catch (e) { if (e && (e.statusCode === 404 || e.statusCode === 410)) weg.add(s.id); else fehl++; }
@@ -99,7 +116,7 @@ export async function run({ fetch, webpush, env, jetzt = new Date(), log = conso
   for (const id of weg) await call(U + "/push/" + encodeURIComponent(id), { method: "DELETE" });
 
   /* gemerkt: verschickte Schlüssel, gesehene Warnungen, erledigte Probemeldung */
-  if (dran.length && !probe) {
+  if (dran.length && !probe && !schluesselFehlt) {
     const keys = merk.concat(dran.filter((d) => !d.key.startsWith("wx:") && d.key !== "probe").map((d) => d.key)).slice(-300);
     const wx = wxAlt.concat(dran.filter((d) => d.key.startsWith("wx:")).map((d) => d.key.slice(3))).slice(-50);
     await setzen(U + "/meta/versand", { keys, wx, probe: probeAt, probeOk: probeAt ? Date.now() : 0, at: jetzt.toISOString() });
@@ -116,6 +133,7 @@ export async function run({ fetch, webpush, env, jetzt = new Date(), log = conso
   log("Termine (" + kal.quelle + "): " + kal.termine.length + (kal.fehler.length ? " (" + kal.fehler.length + " Kalender nicht erreichbar)" : "") + " · Wetter: " + (wetter ? "ja" : "nein") +
     " · Warnungen: " + warnungen.length + " · fällig: " + (dran.map((d) => d.key.split(":")[0]).join(", ") || "nichts") +
     " · gesendet: " + ok + " · Fehler: " + fehl + " · abgemeldete Geräte entfernt: " + weg.size + " · Widget: " + (widget ? "aufgefrischt" : "–"));
+  if (schluesselFehlt) throw new Error("Meldungen nicht verschickt: Geheimnis VAPID_PRIVAT neu eintragen (Widget wurde trotzdem aufgefrischt).");
   return { dran, gesendet: ok, fehler: fehl, entfernt: weg.size, J };
 }
 
