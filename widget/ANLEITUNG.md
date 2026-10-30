@@ -28,6 +28,6 @@ Dauert etwa 5 Minuten. Du brauchst die kostenlose App **Scriptable** aus dem App
 ## Gut zu wissen
 - Neue Fassung des Skripts: in der Jarvis-App wieder auf **Widget-Skript kopieren**, in Scriptable das Skript **Jarvis** öffnen, alles markieren und durch das Neue ersetzen. Der Einrichtungs-Code bleibt gespeichert.
 - Das Widget frischt sich etwa alle 15 Minuten auf (das bestimmt das iPhone). Unten rechts steht, von wann der Stand ist.
-- Die Farbe nimmt es aus deinen Jarvis-Einstellungen. Hell oder dunkel richtet sich nach deinem iPhone.
+- Die Farben nimmt es aus deinem Design in der Jarvis-App (Smaragd Ruhig, Glas oder Polar). Hell oder dunkel richtet sich nach deinem iPhone.
 - Den Einrichtungs-Code nicht weitergeben: Wer ihn hat, sieht deine Termine im Widget.
 - Auch fürs Sperrbildschirm-Widget geht es: dort Scriptable wählen und wieder Script **Jarvis**.
