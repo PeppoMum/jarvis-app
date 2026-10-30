@@ -724,7 +724,6 @@ function pageSettings() {
   return '<div class="listpage"><div><h1 class="page">Einstellungen</h1></div>' +
     designSettings() +
     '<section class="card"><h2 class="label">Hell / Dunkel</h2><div class="seg" role="group" aria-label="Modus">' + [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([v, l]) => '<button data-mode="' + v + '" aria-pressed="' + ((s.mode || 'auto') === v) + '">' + l + '</button>').join('') + '</div><p class="sub" style="margin-top:8px">„Automatisch“ folgt der Einstellung deines Geräts.</p></section>' +
-    paletteSettings() +
     tileSettings() +
     menuSettings() +
     '<section class="card"><div class="row" style="justify-content:space-between"><h2 class="label" style="margin:0">Einrichtung</h2><button class="btn" data-act="onbstart">Einrichtung durchgehen</button></div></section>' +

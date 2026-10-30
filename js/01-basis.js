@@ -134,6 +134,7 @@ const local = {
   read() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}'); } catch (e) { return {}; } },
   write(o) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(o)); } catch (e) {} }
 };
+const LOOK_KEYS = ['mode', 'skin'];
 const store = {
   async setItem(it) {
     if (db) return db.collection('items').doc(it.id).set(it);
@@ -143,9 +144,17 @@ const store = {
     if (db) return db.collection('items').doc(id).delete();
     const o = local.read(); if (o.items) delete o.items[id]; local.write(o); S.items = Object.values(o.items || {}); render();
   },
-  async setSettings(s) {
-    try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: s.mode, palette: s.palette, design: s.design, jpal: s.jpal, skin: s.skin })); } catch (e) {}
-    if (db) return db.doc('meta/settings').set(s);
+  // Design + Hell/Dunkel gehören zum Konto: nur der Knopf in den Einstellungen (look = 'skin' oder 'mode') schreibt sie,
+  // alle anderen Speicherungen nehmen den Stand aus dem Konto, damit ein Gerät mit altem Stand ihn nicht überschreibt.
+  async setSettings(s, look) {
+    if (look) try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: s.mode, skin: s.skin })); } catch (e) {}
+    if (db) {
+      const o = { ...s };
+      if (look) { if (S.cloudLook) S.cloudLook[look] = s[look]; return db.doc('meta/settings').set({ [look]: s[look] }, { merge: true }); }
+      if (!S.cloudLook) { LOOK_KEYS.forEach(k => delete o[k]); return db.doc('meta/settings').set(o, { merge: true }); }
+      LOOK_KEYS.forEach(k => { if (S.cloudLook[k] === undefined) delete o[k]; else o[k] = S.cloudLook[k]; });
+      return db.doc('meta/settings').set(o);
+    }
     const o = local.read(); o.settings = s; local.write(o);
   },
   async setTimer(t) {
@@ -182,7 +191,9 @@ async function boot() {
     db.collection('items').onSnapshot(snap => { S.items = snap.docs.map(d => ({ ...d.data(), id: d.id })); S.loaded = true; render(); }, onDbError);
     db.doc('meta/settings').onSnapshot(snap => {
       if (!S.setSeen) { S.setSeen = true; S.setExists = snap.exists; }
-      if (snap.exists) { S.settings = { ...S.settings, ...snap.data() }; try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: S.settings.mode, palette: S.settings.palette, design: S.settings.design, jpal: S.settings.jpal, skin: S.settings.skin })); } catch (e) {} applyLook(); render(); }
+      const d = snap.exists ? snap.data() : {};
+      S.cloudLook = { mode: d.mode, skin: d.skin };
+      if (snap.exists) { S.settings = { ...S.settings, ...d }; try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: S.settings.mode, skin: S.settings.skin })); } catch (e) {} applyLook(); render(); }
     }, onDbError);
     db.doc('meta/timer').onSnapshot(snap => { S.timer = snap.exists && snap.data().subjectId ? snap.data() : null; render(); }, onDbError);
     db.doc('meta/chat').onSnapshot(snap => { S.chat = snap.exists ? (snap.data().log || []) : []; render(); }, onDbError);
@@ -220,19 +231,17 @@ function applyLook() {
   // „Automatisch“: erst Claude (data-theme), dann das Gerät; das Ergebnis steht immer fest in data-mode
   const html = document.documentElement, m = S.settings.mode || 'auto';
   html.dataset.mode = resolvedMode(); html.style.colorScheme = html.dataset.mode;
-  if (isJarvis()) { delete html.dataset.palette; html.dataset.design = 'jarvis'; const sk = skinId(); if (sk) { html.dataset.skin = sk; delete html.dataset.jcol; } else { delete html.dataset.skin; html.dataset.jcol = jpalId(); } }
+  if (isJarvis()) { delete html.dataset.palette; html.dataset.design = 'jarvis'; html.dataset.skin = skinId(); delete html.dataset.jcol; }
   else { html.dataset.palette = S.settings.palette || 'smaragd'; delete html.dataset.design; delete html.dataset.jcol; }
 }
-const isJarvis = () => true;   // eigene App: nur das Rüstung-Design
-const jpalId = () => JPALETTES.some(p => p.id === S.settings.jpal) ? S.settings.jpal : 'rotgold';
-// Drei ruhige Looks (css/looks.css), Phil 29.10.2026. Leer = Rüstung.
+const isJarvis = () => true;   // eigene App: Aufbau der Seiten aus dem Jarvis-Design, Farben aus den Looks
+// Drei ruhige Looks (css/looks.css), Phil 29.10.2026. Rüstung am 30.10.2026 entfernt: wer sie hatte, bekommt Smaragd Ruhig.
 const SKINS = [
-  { id: '', name: 'Rüstung', sub: 'Futuristisch, schräge Ecken', c: ['#C8322B', '#E8B04B', '#0F0C0B'] },
   { id: 'smaragd', name: 'Smaragd Ruhig', sub: 'Weich und rund, viel Luft', c: ['#0B5D47', '#F8E7C9', '#20201F'] },
   { id: 'glas', name: 'Glas', sub: 'Halb durchsichtig, Petrol und Koralle', c: ['#0F5C6E', '#FF9A85', '#08161A'] },
   { id: 'polar', name: 'Polar', sub: 'Klare Linien, leichtes Leuchten', c: ['#0A62C2', '#7DBBFF', '#1F2123'] }
 ];
-const skinId = () => SKINS.some(k => k.id && k.id === S.settings.skin) ? S.settings.skin : '';
+const skinId = () => SKINS.some(k => k.id === S.settings.skin) ? S.settings.skin : 'smaragd';
 mq.addEventListener && mq.addEventListener('change', () => { applyLook(); });
 try { new MutationObserver(() => { if ((S.settings.mode || 'auto') === 'auto' && document.documentElement.dataset.mode !== resolvedMode()) applyLook(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
 
@@ -281,63 +290,11 @@ function paletteCss() {
   }).join('\n');
 }
 (function () { const st = document.createElement('style'); st.id = 'palettes'; st.textContent = paletteCss(); document.head.appendChild(st); document.documentElement.dataset.palette = S.settings.palette || 'smaragd'; })();
-/* ===================== Design „Jarvis“ (Rüstung): 6 Farben, je hell + dunkel ===================== */
-// Zusätzlich zu den Grundfarben: --jstr (Signalfarbe, z. B. Rot), --onjstr (Schrift darauf), --jglow (Leuchten, als r,g,b), --jtrk (Grund der Tagesleiste)
-const JK = ['bg', 'card', 'soft', 'ln', 'tx', 'mu', 'ac', 'onac', 'acs', 'onacs', 'nav', 'navtx', 'navon', 'onnavon', 'jstr', 'onjstr', 'jglow', 'jtrk'];
-const jv = s => Object.fromEntries(s.split(' ').map((x, i) => [JK[i], x]));
-const JPALETTES = [
-  { id: 'rotgold', name: 'Rot-Gold', c: ['#E8B04B', '#C8322B', '#0F0C0B'],
-    l: jv('#F4EFE7 #FFFFFF #EBE4D9 #DDD0BC #1E1714 #685847 #8F5F0F #FFFFFF #F3E3C4 #5E3D06 #1E1714 #D8C7A8 #C8322B #FFFFFF #C8322B #FFFFFF 200,50,43 #EDE5D8'),
-    d: jv('#0F0C0B #1B1513 #2A211D #47371C #F3E9D8 #BFAE90 #E8B04B #1A120A #3A2621 #E8B04B #16110F #D8C7A8 #C8322B #FFF6EC #C8322B #FFF6EC 210,59,47 #1D1714') },
-  { id: 'stealth', name: 'Stealth (Silber-Rot)', c: ['#C8D0D8', '#C8222A', '#0B0C0E'],
-    l: jv('#EDEFF2 #FFFFFF #E3E6EA #CDD2D8 #111417 #5B6670 #2B3138 #FFFFFF #E1E4E8 #2B3138 #111417 #C3CBD3 #C8222A #FFFFFF #C8222A #FFFFFF 200,34,42 #E4E7EB'),
-    d: jv('#0B0C0E #17191C #24272B #3C3F43 #EEF1F4 #A3ACB5 #C8D0D8 #0B0C0E #2A2E33 #EEF1F4 #121417 #C3CBD3 #C8222A #FFFFFF #C8222A #FFFFFF 215,38,46 #1A1D21') },
-  { id: 'warmachine', name: 'War Machine (Stahl-Orange)', c: ['#FF8A2A', '#3F5E7E', '#101215'],
-    l: jv('#EEF0F3 #FFFFFF #E3E7EC #CED5DD #14181D #586270 #A04808 #FFFFFF #FBE6D3 #7A3605 #14181D #C9CFD6 #3F5E7E #FFFFFF #3F5E7E #FFFFFF 255,138,42 #E6EAEF'),
-    d: jv('#101215 #1C2025 #272C33 #4E311A #EDEFF2 #9AA3AD #FF8A2A #1A0E04 #2E3540 #FFB066 #171A1E #C9CFD6 #3F5E7E #FFFFFF #3F5E7E #FFFFFF 255,138,42 #1F2329') },
-  { id: 'bordeaux', name: 'Bordeaux-Gold', c: ['#D9A441', '#8E1B2C', '#120A0C'],
-    l: jv('#F6EFEC #FFFFFF #EDE2DE #DCCBC5 #22100F #6E5550 #8E1B2C #FFFFFF #F5E6C8 #6A4A0E #1C0D10 #DCCBBE #D9A441 #1A1004 #8E1B2C #FFFFFF 142,27,44 #EFE5E1'),
-    d: jv('#120A0C #201216 #2C1820 #46321A #F5ECE6 #B9A396 #D9A441 #1A1004 #3A1C24 #D9A441 #1A0E11 #DCCBBE #8E1B2C #FFFFFF #8E1B2C #FFFFFF 142,27,44 #22141A') },
-  { id: 'smaragd', name: 'Smaragd-Champagner', c: ['#F8E7C9', '#0E7A5C', '#04100C'],
-    l: jv('#F1F4EF #FFFFFF #E5ECE6 #CFDCD3 #062A20 #4F6258 #064E3B #F8E7C9 #F8E7C9 #064E3B #04100C #D4DED6 #F8E7C9 #064E3B #0E7A5C #FFFFFF 16,185,129 #E7EEE9'),
-    d: jv('#04100C #0B1E17 #12291F #43483D #F1F5F0 #A3B8AB #F8E7C9 #1A1408 #12382B #F8E7C9 #081812 #D4DED6 #0E7A5C #FFFFFF #0E7A5C #FFFFFF 16,185,129 #0E241C') },
-  { id: 'carbon', name: 'Carbon-Gelb', c: ['#F5D90A', '#E5E5E5', '#0B0B0B'],
-    l: jv('#F2F2F0 #FFFFFF #E6E6E3 #D2D2CE #111111 #5E5E5E #111111 #F5D90A #FFF6B0 #111111 #0B0B0B #D0D0D0 #F5D90A #111111 #111111 #F5D90A 245,217,10 #E9E9E6'),
-    d: jv('#0B0B0B #181818 #262626 #48410B #F4F4F4 #A6A6A6 #F5D90A #111111 #2E2E2E #F5D90A #131313 #D0D0D0 #E5E5E5 #111111 #E5E5E5 #111111 245,217,10 #1C1C1C') }
-];
-(function () {
-  const v = o => Object.entries(o).map(([k, x]) => '--' + k + ':' + x).join(';');
-  const css = JPALETTES.map(p => {
-    const r = 'html:root[data-design="jarvis"][data-jcol="' + p.id + '"]';
-    return r + '{' + v(p.l) + '}' +
-      '@media (prefers-color-scheme:dark){' + r + ':not([data-theme="light"]):not([data-mode="light"]){' + v(p.d) + ';color-scheme:dark}}' +
-      r + '[data-theme="dark"]:not([data-mode="light"]),' + r + '[data-mode="dark"]{' + v(p.d) + ';color-scheme:dark}';
-  }).join('\n');
-  const st = document.createElement('style'); st.id = 'jpalettes'; st.textContent = css; document.head.appendChild(st); applyLook();
-})();
-function designSettings() {   // Rüstung oder einer der drei ruhigen Looks
+applyLook();
+function designSettings() {   // einer der drei ruhigen Looks
   const cur = skinId();
   return '<section class="card"><h2 class="label">Design</h2><div class="palgrid" role="group" aria-label="Design">' +
-    SKINS.map(k => '<button class="palbtn" data-skin="' + (k.id || 'ruestung') + '" aria-pressed="' + (cur === k.id) + '"><span class="palsw">' + k.c.map(x => '<i style="background:' + x + '"></i>').join('') + '</span><span>' + esc(k.name) + ' <small class="sub">' + esc(k.sub) + '</small></span></button>').join('') +
-    '</div></section>';
-}
-function designSettingsAlt() {
-  const j = isJarvis();
-  return '<section class="card"><h2 class="label">Design</h2><div class="dsgn" role="group" aria-label="Design">' +
-    '<button data-look="klassisch" aria-pressed="' + !j + '">Klassisch<small>Ruhig und sauber, runde Ecken</small></button>' +
-    '<button data-look="jarvis" aria-pressed="' + j + '">Jarvis<small>Futuristisch wie die Iron-Man-Rüstung</small></button></div></section>';
-}
-function paletteSettings() {
-  if (isJarvis() && skinId()) return '';   // die ruhigen Looks haben feste Farben
-  if (isJarvis()) {
-    const cj = jpalId();
-    return '<section class="card"><h2 class="label">Farben</h2><div class="palgrid" role="group" aria-label="Jarvis-Farbe">' +
-      JPALETTES.map(p => '<button class="palbtn" data-jc="' + p.id + '" aria-pressed="' + (cj === p.id) + '"><span class="palsw">' + p.c.map(x => '<i style="background:' + x + '"></i>').join('') + '</span><span>' + esc(p.name) + (p.id === 'rotgold' ? ' <small class="sub">Standard</small>' : '') + '</span></button>').join('') +
-      '</div></section>';
-  }
-  const cur = S.settings.palette || 'smaragd';
-  return '<section class="card"><h2 class="label">Farben</h2><div class="palgrid" role="group" aria-label="Farbkombi">' +
-    PALETTES.map(p => '<button class="palbtn" data-pal="' + p.id + '" aria-pressed="' + (cur === p.id) + '"><span class="palsw"><i style="background:' + p.c[0] + '"></i><i style="background:' + p.c[1] + '"></i></span><span>' + esc(p.name) + (p.id === 'smaragd' ? ' <small class="sub">Standard</small>' : '') + '</span></button>').join('') +
+    SKINS.map(k => '<button class="palbtn" data-skin="' + k.id + '" aria-pressed="' + (cur === k.id) + '"><span class="palsw">' + k.c.map(x => '<i style="background:' + x + '"></i>').join('') + '</span><span>' + esc(k.name) + ' <small class="sub">' + esc(k.sub) + '</small></span></button>').join('') +
     '</div></section>';
 }
 

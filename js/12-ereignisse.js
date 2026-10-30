@@ -5,7 +5,7 @@ function go(route) { if (route === 'fokus') route = 'zeiten'; if (route === 'sta
 window.addEventListener('hashchange', () => { const r = location.hash.slice(1); if (r && r !== S.route) go(r); });
 
 document.addEventListener('click', async (ev) => {
-  const el = ev.target.closest('[data-xclose],[data-now],[data-go],[data-act],[data-edit],button[data-mode],button[data-jc],button[data-skin],[data-hint],[data-convert],[data-resort],[data-del],[data-pvdel],[data-close],[data-weeknav],[data-new],[data-planmove],[data-subj],[data-timer],[data-grade],[data-reviewsub],[data-rate],[data-top],[data-fdur],[data-tcat],[data-examplan],[data-untrash],[data-purge],[data-mailtodo],[data-maildraft],[data-undo],[data-memok],[data-tilemove],[data-plreset],[data-pldel],[data-plsuggest],[data-matpdf],[data-subjpdf],[data-tview],[data-tnav],[data-tedit],[data-catup],[data-hadd],[data-hpdel],[data-hmini],[data-harch],[data-hunarch],[data-pdlog],[data-pdskip],[data-bmove],[data-tview2],[data-filedel]');
+  const el = ev.target.closest('[data-xclose],[data-now],[data-go],[data-act],[data-edit],button[data-mode],button[data-skin],[data-hint],[data-convert],[data-resort],[data-del],[data-pvdel],[data-close],[data-weeknav],[data-new],[data-planmove],[data-subj],[data-timer],[data-grade],[data-reviewsub],[data-rate],[data-top],[data-fdur],[data-tcat],[data-examplan],[data-untrash],[data-purge],[data-mailtodo],[data-maildraft],[data-undo],[data-memok],[data-tilemove],[data-plreset],[data-pldel],[data-plsuggest],[data-matpdf],[data-subjpdf],[data-tview],[data-tnav],[data-tedit],[data-catup],[data-hadd],[data-hpdel],[data-hmini],[data-harch],[data-hunarch],[data-pdlog],[data-pdskip],[data-bmove],[data-tview2],[data-filedel]');
   if (!el || el === document.documentElement) return;
   if ((el.dataset.xclose === 'onb' || (el.dataset.close === 'onb' && ev.target === el)) && !S.settings.onboarded) { S.settings = { ...S.settings, onboarded: true }; store.setSettings(S.settings); }
   if (el.dataset.xclose) { const k = el.dataset.xclose; if (k === 'review') { finishReview(); return; } if (k === 'plan' && S.plan && S.plan.loading) return; S[k] = null; render(); return; }
@@ -42,9 +42,8 @@ document.addEventListener('click', async (ev) => {
   if (el.dataset.reviewsub) { startReview(el.dataset.reviewsub); return; }
   if (el.dataset.planmove) { const it = S.items.find(i => i.id === el.dataset.planmove); if (it) await store.setItem({ ...it, date: S.plan ? S.plan.week : todayISO() }); return; }
   if (el.dataset.edit) { const it = S.items.find(i => i.id === el.dataset.edit); if (it) { lastFocus = el.dataset.edit; S.editing = { ...it }; render(); setTimeout(() => { const f = $('.sheet input'); f && f.focus(); }, 0); } return; }
-    if (el.dataset.mode) { S.settings = { ...S.settings, mode: el.dataset.mode }; applyLook(); render(); store.setSettings(S.settings); return; }
-    if (el.dataset.skin) { S.settings = { ...S.settings, skin: el.dataset.skin === 'ruestung' ? '' : el.dataset.skin }; applyLook(); render(); store.setSettings(S.settings); return; }
-    if (el.dataset.jc) { S.settings = { ...S.settings, jpal: el.dataset.jc }; applyLook(); render(); store.setSettings(S.settings); return; }
+    if (el.dataset.mode) { S.settings = { ...S.settings, mode: el.dataset.mode }; applyLook(); render(); store.setSettings(S.settings, 'mode'); return; }
+    if (el.dataset.skin) { S.settings = { ...S.settings, skin: el.dataset.skin }; applyLook(); render(); store.setSettings(S.settings, 'skin'); return; }
   if (el.dataset.pvdel != null && S.pending) { S.pending.items.splice(Number(el.dataset.pvdel), 1); render(); return; }
   if (el.dataset.hint) {
     if (el.dataset.hint === 'moveToday') { const it = S.items.find(i => i.id === el.dataset.id); if (it) await store.setItem({ ...it, date: todayISO() }); }
