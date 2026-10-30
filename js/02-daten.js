@@ -20,7 +20,7 @@ function blocksOn(iso) {
   if (off) out.push({ id: off.id, kind: 'off', title: off.title || (off.kind === 'urlaub' ? 'Urlaub' : 'Frei'), start: null, end: null, area: 'alltag', date: iso, cal: off.gcalId ? 'ok' : (off.calErr ? 'err' : ''), src: off });
   const hol = holidayOn(iso); if (hol && !off) out.push({ id: 'h:' + iso, kind: 'holiday', title: hol, start: null, end: null, area: 'alltag', date: iso, ro: true, calName: 'Feiertag' });
   const linked = linkedGids();
-  S.gcal.filter(g => g.date === iso && !linked.some(l => g.gid === l || g.gid.startsWith(l + '_'))).forEach(g => out.push({ id: 'g:' + g.gid, gid: g.gid, endDate: g.endDate, rec: g.rec, kind: 'google', title: g.title, start: g.start, end: g.end, area: g.area || null, place: g.place, date: iso, ro: true, calName: g.calName }));
+  S.gcal.filter(g => g.date === iso && !linked.some(l => g.gid === l || g.gid.startsWith(l + '_'))).forEach(g => out.push({ id: 'g:' + g.gid, gid: g.gid, endDate: g.endDate, rec: g.rec, kind: 'google', title: g.title, start: g.start, end: g.end, area: g.area || null, place: g.place, date: iso, ro: true, calName: g.calName, cockpit: !!g.cockpit || /trainer-cockpit/i.test(g.calName || ''), abf: g.abf || null, abfMin: g.abfMin || null }));
   return out.sort((a, b) => (hmToMin(a.start) ?? -1) - (hmToMin(b.start) ?? -1));
 }
 // Mehrtägige Termine: erster Tag ab Beginn, letzter Tag bis Ende, dazwischen ganztägig

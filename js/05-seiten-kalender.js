@@ -346,7 +346,7 @@ async function fetchGcal() {
       const st = parseGTime(e.start || e.startTime), en = parseGTime(e.end || e.endTime);
       const gid = e.id || e.eventId || '';
       if (!st || !gid || e.status === 'cancelled') return null;
-      return { gid, title: e.summary || e.title || '(ohne Titel)', date: st.date, start: st.time, end: en && en.date === st.date ? en.time : null, endDate: en ? en.date : null, rec: !!e.recurringEventId, place: e.location || null, calName: e.__cal && e.__cal.id ? e.__cal.name : null, area: e.__cal && e.__cal.area || null };
+      return { gid, title: e.summary || e.title || '(ohne Titel)', date: st.date, start: st.time, end: en && en.date === st.date ? en.time : null, endDate: en ? en.date : null, rec: !!e.recurringEventId, place: e.location || null, calName: e.__cal && e.__cal.id ? e.__cal.name : null, area: e.__cal && e.__cal.area || null, ...(isCockpitCal(e.__cal) ? { cockpit: true, ...abfahrtAus(e.description) } : {}) };
     }).filter(Boolean));
     if (failed.length) setTimeout(() => { if (S.gcalPartial) fetchGcal(); }, 60000);   // gleich nochmal versuchen
     S.gcalState = 'ok';

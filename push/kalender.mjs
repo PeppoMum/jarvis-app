@@ -31,7 +31,7 @@ export function termineAusIcs(text, von, bis, nameVorgabe) {
     const ganz = s.isDate, a = s.toJSDate(), z = e ? e.toJSDate() : a;
     if (z <= start || a >= ende) return;
     const gid = String(ev.uid || "").replace(/@google\.com$/, "") + (idTeil ? "_" + idTeil : "");
-    const base = { title: ev.summary || "(ohne Titel)", place: ev.location || "", calName, area, rec: !!rec };
+    const base = { title: ev.summary || "(ohne Titel)", place: ev.location || "", calName, area, rec: !!rec, ...(/trainer-cockpit/i.test(calName) ? { cockpit: true, ...abfahrtAus(ev.description) } : {}) };
     if (ganz) {   /* ganztägig: Ende ist der Folgetag */
       const letzter = e ? addDays(iso(z), -1) : iso(a);
       for (let d = iso(a), n = 0; d <= letzter && n < 60; d = addDays(d, 1), n++) if (d >= von && d <= bis) out.push({ ...base, gid, date: d, start: null, end: null, endDate: letzter > iso(a) ? letzter : null });
@@ -74,6 +74,16 @@ export async function ladeTermine(fetchFn, liste, von, bis) {
 
 /* Alternative ohne iCal-Adresse: über den Google-Zugang der App (users/<uid>/meta/google { clientId, clientSecret, refresh }).
    Nur lesen. Kalender: Hauptkalender + settings.extraCals (wie in der App, Standard: U13 Trainer-Cockpit). */
+/* Fußball-App (Kalender „U13 Trainer-Cockpit“): Losfahr-Zeit steht in der Beschreibung, Zeile „Abfahrt: 13:25 Uhr (Fahrzeit ca. 10 Min., berechnet)“ */
+export function abfahrtAus(desc) {
+  const txt = String(desc || "").replace(/<br\s*\/?>|<\/(p|div|li)>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ");
+  for (const z of txt.split(/\r?\n/)) {
+    const m = /^\s*Abfahrt:\s*(\d{1,2})[:.](\d{2})/i.exec(z); if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) continue;
+    const f = /Fahrzeit\D{0,8}?(\d+)\s*Min/i.exec(z);
+    return { abf: m[1].padStart(2, "0") + ":" + m[2], abfMin: f ? Number(f[1]) : null };
+  }
+  return { abf: null, abfMin: null };
+}
 export const TEAM_CAL = { id: "6bccee518a54346e36d10361e101db6e07df969a5944171e66c8e9ea20758656@group.calendar.google.com", name: "U13 Trainer-Cockpit", area: "team" };
 export async function ladeGoogle(fetchFn, g, settings, von, bis) {
   const r = await fetchFn("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -90,7 +100,8 @@ export async function ladeGoogle(fetchFn, g, settings, von, bis) {
         const x = await fetchFn(u, { headers: { Authorization: "Bearer " + tok } }); if (!x.ok) throw new Error("HTTP " + x.status);
         const j = await x.json(); page = j.nextPageToken || "";
         (j.items || []).filter((e) => e.status !== "cancelled").forEach((e) => {
-          const base = { gid: e.id, title: e.summary || "(ohne Titel)", place: e.location || "", calName: c.name || "Google", area: c.area || null, rec: !!e.recurringEventId };
+          const base = { gid: e.id, title: e.summary || "(ohne Titel)", place: e.location || "", calName: c.name || "Google", area: c.area || null, rec: !!e.recurringEventId,
+            ...(c.id === TEAM_CAL.id || /trainer-cockpit/i.test(c.name || "") ? { cockpit: true, ...abfahrtAus(e.description) } : {}) };
           if (e.start && e.start.date) {
             const letzter = addDays(e.end.date, -1);
             for (let d = e.start.date, k = 0; d <= letzter && k < 60; d = addDays(d, 1), k++) if (d >= von && d <= bis) out.push({ ...base, date: d, start: null, end: null, endDate: letzter > e.start.date ? letzter : null });
