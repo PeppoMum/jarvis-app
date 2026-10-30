@@ -9,7 +9,7 @@ process.env.TZ = "Europe/Berlin";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
-import { jarvis, addDays, isoDate } from "./jarvis.mjs";
+import { jarvis, addDays, isoDate, mondayOf } from "./jarvis.mjs";
 import { jetztDran, widgetDaten } from "./meldungen.mjs";
 import { adressen, ladeTermine, ladeGoogle } from "./kalender.mjs";
 import { ort, ladeWetter, ladeWarnungen } from "./wetter.mjs";
@@ -77,7 +77,8 @@ export async function run({ fetch, webpush, env, jetzt = new Date(), log = conso
     holen(U + "/meta/settings"), holen(U + "/meta/focus"), holen(U + "/meta/versand"), holen(U + "/meta/kasten"), holen(U + "/meta/google"), alle(U + "/items"), alle(U + "/push")]);
   log("Prüfung: Nutzer-Nummer " + uid.length + " Zeichen (" + uid.slice(0, 3) + "…" + uid.slice(-3) + ") · gefunden: " +
     [["Einstellungen", settings], ["Google", google], ["Widget", kasten]].map(([n, v]) => n + " " + (v ? "ja" : "nein")).join(", ") + ", Einträge " + items.length);
-  const S = settings || {}, t = isoDate(jetzt), o = ort(S), von = addDays(t, -1), bis = addDays(t, 14);
+  /* Termine ab Montag laden, sonst fehlen bei „Woche“ (Widget) die Stunden der vergangenen Wochentage */
+  const S = settings || {}, t = isoDate(jetzt), o = ort(S), von = [addDays(t, -1), mondayOf(t)].sort()[0], bis = addDays(t, 14);
   /* Termine: über den Google-Zugang der App; geht das nicht (oder gibt es ihn noch nicht), über die geheimen iCal-Adressen */
   const termine = async () => {
     const ical = adressen(env.KALENDER_ICAL);
