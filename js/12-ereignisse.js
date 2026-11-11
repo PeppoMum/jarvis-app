@@ -77,6 +77,7 @@ document.addEventListener('click', async (ev) => {
   if (el.dataset.matpdf) { const m = S.items.find(i => i.id === el.dataset.matpdf); if (m) makePdf(S.items.find(i => i.id === m.subjectId), [m]); return; }
   if (el.dataset.subjpdf) { const sub = S.items.find(i => i.id === el.dataset.subjpdf); if (sub) makePdf(sub, materials(sub.id)); return; }
   switch (el.dataset.act) {
+    case 'planseen': await planSeen(); showToast('Alles klar, gemerkt.'); render(); break;
     case 'draftsave': saveDraft(); break;
     case 'brief': makeBrief(true); break;
     case 'sfocus': await startFromTile(false); break;
@@ -311,8 +312,9 @@ document.addEventListener('submit', async (ev) => {
     await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return;
   }
   if (kind === 'slimme') {
-    const fd = new FormData(f), n = Number(String(fd.get('workHours') ?? '').replace(',', '.'));
-    S.settings = { ...S.settings, name: String(fd.get('name') || '').trim().slice(0, 40), workHours: String(fd.get('workHours') ?? '').trim() === '' || isNaN(n) ? 20 : Math.max(0, Math.min(60, Math.round(n * 2) / 2)) };
+    const fd = new FormData(f), n = Number(String(fd.get('workHours') ?? '').replace(',', '.')), u = String(fd.get('planUrl') || '').trim();
+    if (u && !planUrlOk(u)) { showToast('Bitte einen Link von claude.ai einfügen (beginnt mit https://claude.ai/).'); return; }
+    S.settings = { ...S.settings, name: String(fd.get('name') || '').trim().slice(0, 40), workHours: String(fd.get('workHours') ?? '').trim() === '' || isNaN(n) ? 20 : Math.max(0, Math.min(60, Math.round(n * 2) / 2)), planUrl: u };
     await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return;
   }
   if (kind === 'name') { const v = f.querySelector('input').value.trim().slice(0, 40); S.settings = { ...S.settings, name: v }; await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return; }

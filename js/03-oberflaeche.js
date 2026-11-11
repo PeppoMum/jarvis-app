@@ -139,6 +139,54 @@ function slimDeparture(b) {
   const s = hmToMin(b.start), ride = blocksOn(b.date).filter(x => x.start && x.end && isTransit(x) && hmToMin(x.end) <= s && hmToMin(x.end) >= s - 45).pop();
   return ride ? 'Davor: ' + ride.title + ' um ' + ride.start + ' Uhr' : null;
 }
+/* ----- Neu im Plan: was sich im Google Kalender seit deinem letzten Blick geändert hat (neu, verschoben, weggefallen) -----
+   Gemerkt wird ein Abbild der nächsten 14 Tage (meta/planseen, auf allen Geräten gleich). Verglichen wird nur, wenn der Kalender
+   vollständig geladen ist, sonst sähe ein Ladefehler wie „alles weggefallen“ aus. Fahrten zählen nicht mit. */
+const PS_TAGE = 14;
+function planNow() {
+  const t = todayISO(), ev = {};
+  for (let i = 0; i < PS_TAGE; i++) blocksOn(addDays(t, i)).forEach(b => { if (b.kind === 'google' && !isTransit(b) && !ev[b.gid]) ev[b.gid] = [b.date, b.start || '', b.end || '', b.title]; });
+  return { from: t, to: addDays(t, PS_TAGE - 1), ev };
+}
+const planReady = () => S.gcalState === 'ok' && !S.gcalPartial && !!S.planseenLoaded;
+function planChanges() {
+  const seen = S.planseen;
+  if (!planReady() || !seen || !seen.ev) return [];
+  const cur = planNow(), out = [];
+  Object.entries(cur.ev).forEach(([k, v]) => {
+    const o = seen.ev[k];
+    if (!o) { if (v[0] <= seen.to) out.push({ typ: 'neu', v }); }
+    else if (o[0] !== v[0] || o[1] !== v[1] || o[2] !== v[2]) out.push({ typ: 'verschoben', v, o });
+  });
+  Object.entries(seen.ev).forEach(([k, o]) => {
+    if (cur.ev[k] || o[0] < cur.from || o[0] > cur.to) return;
+    const g = (S.gcal || []).find(x => x.gid === k);   // aus den 14 Tagen herausgeschoben: verschoben, nicht weggefallen
+    out.push(g ? { typ: 'verschoben', v: [g.date, g.start || '', g.end || '', g.title], o } : { typ: 'weg', o });
+  });
+  const key = c => (c.v || c.o)[0] + ' ' + ((c.v || c.o)[1] || '00:00');
+  return out.sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
+}
+async function planSeen() { S._psBusy = true; try { await store.setMeta('planseen', { ...planNow(), at: new Date().toISOString() }); } finally { S._psBusy = false; } }
+// Erstes Mal und an Tagen ohne Änderung still mitziehen (höchstens einmal am Tag), damit neue Tage am Ende der 14 Tage mitzählen
+function planSeenAuto(chg) {
+  if (!planReady() || S._psBusy || chg.length) return;
+  if (!S.planseen || !S.planseen.ev || S.planseen.to < addDays(todayISO(), PS_TAGE - 1)) setTimeout(() => { if (!S._psBusy) planSeen(); }, 0);
+}
+// Link zum Planungs-Projekt in Claude (in den Einstellungen hinterlegt), sonst die Projekt-Übersicht
+const planUrlOk = u => /^https:\/\/claude\.ai\/[^\s"'<>]*$/.test(String(u || ''));
+const planUrl = () => planUrlOk(S.settings.planUrl) ? S.settings.planUrl : 'https://claude.ai/projects';
+const umplanenBtn = (cls = 'btn ghost sm') => '<a class="' + cls + ' umplanen" href="' + esc(planUrl()) + '" target="_blank" rel="noopener">In Claude umplanen</a>';
+function planChangesCard() {
+  const chg = planChanges();
+  planSeenAuto(chg);
+  if (!chg.length) return '';
+  const when = v => fmtShort(v[0]) + (v[1] ? ', ' + v[1] + (v[2] ? '–' + v[2] : '') : ', ganztägig');
+  const row = c => '<li class="slimchg ' + c.typ + '"><b>' + (c.typ === 'neu' ? 'Neu' : c.typ === 'weg' ? 'Fällt weg' : 'Verschoben') + ':</b> ' +
+    esc((c.v || c.o)[3]) + ' · ' + (c.typ === 'verschoben' ? esc(when(c.o)) + ' → ' + esc(when(c.v)) : esc(when(c.v || c.o))) + '</li>';
+  return '<section class="card jlist slimneu" aria-labelledby="h-neu"><div class="lhead"><h2 class="label" id="h-neu">Neu im Plan</h2><button class="btn sm" data-act="planseen">Gesehen</button></div>' +
+    '<ul class="slimchgs">' + chg.slice(0, 8).map(row).join('') + (chg.length > 8 ? '<li class="slimchg">und ' + (chg.length - 8) + ' weitere</li>' : '') + '</ul>' +
+    '<div class="row" style="margin-top:8px">' + umplanenBtn('btn sm') + '</div></section>';
+}
 function pageToday() {
   const t = todayISO(), nowM = hmToMin(nowHM());
   const tmw = dayViewTomorrow(), dv = tmw ? addDays(t, 1) : t, nowV = tmw ? -1 : nowM;
@@ -180,7 +228,7 @@ function pageToday() {
   // Am PC steht „Als Nächstes“ als Zeile im Kopf des Tagesplans, am Handy als eigene Karte darüber
   const chip = nx && !tmw ? '<span class="jnx"><i>Als Nächstes</i><b>' + esc(nx.title) + '</b><span>' + esc([countdown(nx), (nx.date !== t ? fmtShort(nx.date) + ' ' : '') + (nx.start || 'ganztägig') + (nx.end ? '–' + nx.end : ''), nx.place, dep].filter(Boolean).join(' · ')) + '</span></span>' : '';
   const plan = '<section class="card jplan has-jt" aria-labelledby="h-tl"><div class="jph"><h2 class="label" id="h-tl">' + (tmw ? 'Dein Tag morgen' : 'Dein Tag') + '</h2><span class="jline"></span>' + chip + '<span class="row" style="gap:2px">' + dayToggle() + '</span></div>' +
-    dvLine + calNote() + jt + tl + '</section>';
+    dvLine + calNote() + jt + tl + '<div class="row slimplan">' + umplanenBtn() + '</div></section>';
 
   // Nicht vergessen: die neuesten Notizen
   const ns = slimNotes();
@@ -188,7 +236,7 @@ function pageToday() {
     ns.slice(0, 5).map(noteRowHtml).join('') + '</section>' : '';
 
   return '<div class="today jtoday slim">' + head + '<div class="t-ask">' + composer('t') + '</div>' +
-    '<div class="jnext-ph">' + nextHtml + '</div>' + plan + notes + '</div>';
+    '<div class="jnext-ph">' + nextHtml + '</div>' + planChangesCard() + plan + notes + '</div>';
 }
 
 /* ----- Heute (alte, volle Fassung bis 11.11.2026; wird nicht mehr aufgerufen, fliegt beim endgültigen Aufräumen raus) ----- */
@@ -780,6 +828,8 @@ function pageSettings() {
       '<label class="field"><span>Wie soll Jarvis dich nennen?</span><input name="name" value="' + esc(s.name || '') + '" autocomplete="off" maxlength="40"></label>' +
       '<label class="field"><span>Arbeit pro Woche (Std.)</span><input name="workHours" type="number" min="0" max="60" step="0.5" inputmode="decimal" value="' + esc(s.workHours ?? 20) + '"></label></div>' +
       '<p class="sub">Die Stunden braucht Jarvis für die Zeile „Arbeit x von 20 Std. geplant“ in der Woche.</p>' +
+      '<label class="field"><span>Link zu deinem Planungs-Projekt in Claude</span><input name="planUrl" type="url" inputmode="url" value="' + esc(s.planUrl || '') + '" placeholder="https://claude.ai/project/…" autocomplete="off"></label>' +
+      '<p class="sub">Dahin führt der Knopf „In Claude umplanen“. In Claude das Projekt öffnen, den Link oben aus dem Browser kopieren und hier einfügen. Leer lassen: Der Knopf öffnet deine Projekt-Übersicht.</p>' +
       '<div class="row"><button class="btn primary" type="submit">Speichern</button></div></form></section>' +
     (window.JarvisGoogle && typeof JarvisGoogle.settingsHTML === 'function' ? JarvisGoogle.settingsHTML() : '') +   // Google verbinden (Klicks darin erledigt js/google.js)
     '<section class="card"><h2 class="label">Kalender</h2><label class="toggle"><input type="checkbox" data-setting="calSync"' + (s.calSync !== false ? ' checked' : '') + '> Termine, die du in Jarvis anlegst, auch in Google Kalender eintragen</label>' +

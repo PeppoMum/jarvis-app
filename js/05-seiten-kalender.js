@@ -175,7 +175,7 @@ function pageWeek() {
       bdaysOn(d).map(x => '<span class="daytask">🎂 ' + esc(x.name) + (x.age ? ' (' + x.age + ')' : '') + '</span>').join('') + '</section>';
   }).join('');
   return '<div class="pagehead"><div><h1 class="page">Woche</h1><p class="sub">' + weekLine(ws) + (S.gcalState === 'loading' ? ' · Kalender lädt …' : '') + '</p></div>' + weekNav() + '</div>' +
-    '<div class="row" style="margin-bottom:16px">' + viewSeg() + '<button class="btn" data-new="event">+ Termin</button></div>' +
+    '<div class="row" style="margin-bottom:16px">' + viewSeg() + '<button class="btn" data-new="event">+ Termin</button>' + umplanenBtn('btn') + '</div>' +
     '<div class="week">' + days + '</div>';
 }
 const workDays = () => (Array.isArray(S.settings.workDays) && S.settings.workDays.length ? S.settings.workDays : [3, 4, 5]).map(Number);

@@ -149,6 +149,81 @@ try {
   gleich(await p.$$eval('.jplan .free', xs => xs.filter(x => x.getClientRects().length).map(x => x.tagName)), ['DIV'], 'Freie Zeit ist nur zum Ansehen (kein Knopf zum Füllen)');
   await p.click('[data-dayview="heute"]');
 
+  /* ===== 2b. Neu im Plan und „In Claude umplanen“ ===== */
+  abschnitt('Neu im Plan: neue, verschobene, weggefallene Google-Termine seit dem letzten Blick');
+  {
+    const q = await oeffne(browser);
+    await q.waitForTimeout(150);
+    const blick = () => q.evaluate(() => S.planseen && { from: S.planseen.from, to: S.planseen.to, keys: Object.keys(S.planseen.ev).sort(), zahn: S.planseen.ev['g-zahn'] });
+    gleich(await blick(), { from: HEUTE, to: '2026-11-24', keys: ['g-spiel', 'g-vl', 'g-zahn'], zahn: ['2026-11-13', '09:00', '09:30', 'Zahnarzt'] }, 'Erster Blick wird still gemerkt (14 Tage, ohne Fahrten)');
+    gleich(await q.evaluate(() => Object.keys(local.read().planseen.ev).sort()), ['g-spiel', 'g-vl', 'g-zahn'], 'Der Blick ist wirklich gespeichert');
+    gleich(await gibt(q, '.slimneu'), 0, 'Ohne Änderung keine Karte „Neu im Plan“');
+    // So sieht es aus, wenn Claude im Planungs-Projekt umgeplant hat
+    const G = (gid, title, date, start, end) => ({ gid, title, date, start, end, area: null, place: null, calName: null });
+    await q.evaluate(([a, b, c, d]) => {
+      S.gcal = S.gcal.filter(g => g.gid !== 'g-vl').map(g => g.gid === 'g-zahn' ? { ...g, date: '2026-11-16', start: '10:00', end: '10:30' } : g).concat([a, b, c, d]); render();
+    }, [G('g-neu', 'Training Torwart', '2026-11-12', '18:00', '19:30'), G('g-bus', 'Bus nach Hause', '2026-11-12', '19:40', '20:10'), G('g-weit', 'Weihnachtsfeier', '2026-11-30', '19:00', '23:00'), G('g-ganz', 'Turnier', '2026-11-14', null, null)]);
+    await q.waitForTimeout(150);   // die Karte muss stehen bleiben, bis Phil „Gesehen“ tippt
+    gleich(await q.$$eval('.slimneu .slimchg', xs => xs.map(x => x.textContent.trim())), [
+      'Fällt weg: Vorlesung Stochastik · Mi, 11. Nov, 14:00–15:45',
+      'Neu: Training Torwart · Do, 12. Nov, 18:00–19:30',
+      'Neu: Turnier · Sa, 14. Nov, ganztägig',
+      'Verschoben: Zahnarzt · Fr, 13. Nov, 09:00–09:30 → Mo, 16. Nov, 10:00–10:30'
+    ], 'Karte zeigt genau: weggefallen, neu (auch ganztägig), verschoben; keine Fahrt, nichts nach den 14 Tagen');
+    pruefe(await q.$eval('.slimneu', el => el.compareDocumentPosition(document.querySelector('.jplan')) & Node.DOCUMENT_POSITION_FOLLOWING), 'Karte steht über dem Tagesplan');
+    gleich(await q.$eval('.slimneu a.umplanen', a => [a.getAttribute('href'), a.target, a.textContent]), ['https://claude.ai/projects', '_blank', 'In Claude umplanen'], 'Ohne eigenen Link öffnet „In Claude umplanen“ die Projekt-Übersicht');
+    // Kalender nicht vollständig geladen: keine falschen „Fällt weg“, und der gemerkte Blick bleibt
+    for (const [was, set] of [['Kalender-Fehler', 'S.gcalState = "error"'], ['ein Kalender fehlt', 'S.gcalPartial = "U13 Trainer-Cockpit"'], ['Blick noch nicht geladen', 'S.planseenLoaded = false']]) {
+      await q.evaluate(c => { const old = { st: S.gcalState, pa: S.gcalPartial, ld: S.planseenLoaded }; new Function(c)(); render(); window.__alt = old; }, set);
+      await q.waitForTimeout(60);
+      gleich(await gibt(q, '.slimneu'), 0, 'Bei „' + was + '“ keine Karte');
+      gleich((await blick()).keys, ['g-spiel', 'g-vl', 'g-zahn'], 'Bei „' + was + '“ bleibt der gemerkte Blick unverändert');
+      await q.evaluate(() => { S.gcalState = window.__alt.st; S.gcalPartial = window.__alt.pa; S.planseenLoaded = window.__alt.ld; render(); });
+    }
+    // Phil schaut erst am nächsten Tag: die Änderungen dürfen nicht still verschwinden
+    await q.clock.setFixedTime(new Date('2026-11-12T08:00:00+01:00'));
+    for (let i = 0; i < 3; i++) { await q.evaluate(() => render()); await q.waitForTimeout(60); }
+    pruefe((await q.evaluate(() => document.querySelector('.slimneu')?.innerText || '')).includes('Neu: Training Torwart'), 'Am nächsten Tag steht die Änderung noch da, bis „Gesehen“ getippt wird');
+    gleich((await blick()).keys, ['g-spiel', 'g-vl', 'g-zahn'], 'Ohne „Gesehen“ wird nichts still überschrieben');
+    await q.clock.setFixedTime(new Date(JETZT)); await q.evaluate(() => render());
+    if (await gibt(q, '.slimneu')) await q.click('.slimneu [data-act="planseen"]'); else await q.evaluate(() => planSeen());
+    await q.waitForTimeout(150);
+    gleich(await gibt(q, '.slimneu'), 0, '„Gesehen“ blendet die Karte aus');
+    gleich(await q.evaluate(() => { const e = local.read().planseen.ev; return [Object.keys(e).sort(), e['g-zahn']]; }), [['g-ganz', 'g-neu', 'g-spiel', 'g-zahn'], ['2026-11-16', '10:00', '10:30', 'Zahnarzt']], '„Gesehen“ merkt den neuen Stand (gespeichert)');
+    // Termin aus den 14 Tagen herausgeschoben: verschoben, nicht weggefallen
+    await q.evaluate(() => { S.gcal = S.gcal.map(g => g.gid === 'g-spiel' ? { ...g, date: '2026-12-01' } : g); render(); });
+    await q.waitForTimeout(150);
+    gleich(await q.$$eval('.slimneu .slimchg', xs => xs.map(x => x.textContent.trim())), ['Verschoben: Spiel U13 gegen Dorsten · Mi, 11. Nov, 17:30–19:00 → Di, 1. Dez, 17:30–19:00'], 'Weit nach hinten geschoben zählt als verschoben');
+    await q.click('.slimneu [data-act="planseen"]'); await q.waitForTimeout(150);
+    // Nichts geändert: kein ständiges Speichern, am nächsten Tag rutschen die 14 Tage einmal mit
+    await q.evaluate(() => { window.__n = 0; const o = store.setMeta.bind(store); store.setMeta = (a, b) => { if (a === 'planseen') window.__n++; return o(a, b); }; });
+    for (let i = 0; i < 5; i++) { await q.evaluate(() => render()); await q.waitForTimeout(20); }
+    gleich(await q.evaluate(() => window.__n), 0, 'Ohne Änderung wird nicht bei jedem Anzeigen gespeichert');
+    await q.clock.setFixedTime(new Date('2026-11-12T09:00:00+01:00'));
+    for (let i = 0; i < 3; i++) { await q.evaluate(() => render()); await q.waitForTimeout(60); }
+    gleich([await q.evaluate(() => window.__n), (await blick()).from, (await blick()).to], [1, MORGEN, '2026-11-25'], 'Am nächsten Tag einmal still mitgezogen (12.11. bis 25.11.)');
+    await q.evaluate(() => { S.gcal = S.gcal.concat([{ gid: 'g-spaet', title: 'Elterngespräch', date: '2026-11-25', start: '17:00', end: '17:30', area: null, place: null, calName: null }]); render(); });
+    gleich(await q.$$eval('.slimneu .slimchg', xs => xs.map(x => x.textContent.trim())), ['Neu: Elterngespräch · Mi, 25. Nov, 17:00–17:30'], 'Neuer Termin am neuen letzten Tag wird erkannt');
+
+    abschnitt('In Claude umplanen: Link in den Einstellungen');
+    await q.clock.setFixedTime(new Date(JETZT));
+    await zu(q, 'einstellungen');
+    await q.fill('form[data-form="slimme"] input[name="planUrl"]', 'https://boese-seite.de/claude.ai/x');
+    await q.click('form[data-form="slimme"] button[type="submit"]'); await q.waitForTimeout(150);
+    gleich(await q.evaluate(() => S.settings.planUrl || ''), '', 'Fremder Link wird nicht gespeichert');
+    pruefe(/claude\.ai/.test(await q.evaluate(() => (S.toast && S.toast.msg) || document.querySelector('.toast')?.textContent || '')), 'Hinweis bei fremdem Link');
+    const LINK = 'https://claude.ai/project/0199abcd-plan';
+    await q.fill('form[data-form="slimme"] input[name="planUrl"]', LINK);
+    await q.click('form[data-form="slimme"] button[type="submit"]'); await q.waitForTimeout(150);
+    gleich(await q.evaluate(() => [S.settings.planUrl, local.read().settings.planUrl, S.settings.name, S.settings.workHours]), [LINK, LINK, 'Phil', 20], 'Link gespeichert, Name und Stunden bleiben');
+    await zu(q, 'heute');
+    gleich(await q.$$eval('.jplan a.umplanen', xs => xs.map(a => [a.getAttribute('href'), a.target])), [[LINK, '_blank']], 'Heute: „In Claude umplanen“ im Tagesplan führt zum Planungs-Projekt');
+    await zu(q, 'woche');
+    gleich(await q.$$eval('#main a.umplanen', xs => xs.map(a => [a.getAttribute('href'), a.target])), [[LINK, '_blank']], 'Woche: Knopf „In Claude umplanen“ führt zum Planungs-Projekt');
+    gleich(q.fehler, [], 'Keine Programmfehler bei Neu im Plan');
+    await q.context().close();
+  }
+
   /* ===== 3. Woche ===== */
   abschnitt('Woche: eine Zeile statt Kacheln, keine Aufgaben');
   await zu(p, 'woche');
@@ -241,6 +316,9 @@ try {
   for (const [breite, hoehe2, handy, name] of [[360, 760, true, 'Handy'], [1280, 900, false, 'PC']]) for (const dunkel of [false, true]) {
     const q = await oeffne(browser, { breite, hoehe: hoehe2, dunkel, handy });
     await q.evaluate(() => { window.showToast = () => {}; S.toast = null; });
+    await q.waitForTimeout(100);   // erster Blick ist gemerkt; dann so tun, als wäre seitdem umgeplant worden, damit „Neu im Plan“ mitgeprüft wird
+    await q.evaluate(() => { S.gcal = S.gcal.filter(g => g.gid !== 'g-zahn').concat([{ gid: 'g-neu', title: 'Training Torwart', date: '2026-11-12', start: '18:00', end: '19:30', area: null, place: null, calName: null }]); render(); });
+    pruefe(await gibt(q, '.slimneu .slimchg') === 2, name + (dunkel ? ' dunkel' : ' hell') + ': Karte „Neu im Plan“ ist für die Lesbarkeits-Prüfung da');
     for (const skin of ['smaragd', 'glas', 'polar']) {
       await q.evaluate(k => { S.settings = { ...S.settings, skin: k }; applyLook(); render(); }, skin);
       for (const r of ['heute', 'woche', 'eingang', 'einstellungen']) {
