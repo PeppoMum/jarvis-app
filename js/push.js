@@ -6,7 +6,7 @@
      die App holt sie ab, sobald sie offen ist, und trägt sie mit der richtigen Uhrzeit ein.
    Verschickt wird von push/senden.mjs (Zeitplan bei GitHub). Der öffentliche Schlüssel unten passt zu VAPID_PRIVAT dort. */
 const PUSH_VAPID = 'BE3YlWSHEaFu8BiiRoeciWyj8FMlRonGdILlf_flKBv6tze8Fx3r7qyfzfMZODnM45hrFi2O05cQPxBMR-7_urc';
-const PUSH_DEF = { morgen: true, morgenZeit: '06:45', morgenWE: '09:00', abend: true, abendZeit: '20:45', woche: true, wocheZeit: '18:45', losfahren: true, losVor: 15, unwetter: true, gewohnheit: true, aufgabe: true };
+const PUSH_DEF = { morgen: true, morgenZeit: '06:45', morgenWE: '09:00', abend: true, abendZeit: '20:45', woche: true, wocheZeit: '18:45', losfahren: true, losVor: 15, unwetter: true, konflikt: true };
 const pushCfg = () => ({ ...PUSH_DEF, ...((typeof S !== 'undefined' && S.settings && S.settings.push) || {}) });
 const pushLs = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
 const pushHex = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a, x => x.toString(16).padStart(2, '0')).join(''); };
@@ -89,10 +89,7 @@ async function kastenAuftrag(a) {
   if (a.art === 'stopp') { if (!F) return null; const n = F.mode === 'track' ? catName(F.cat, F.sub) : F.label; await halt(F); return n + ' beendet um ' + hmOf(at); }
   if (a.art === 'notiz') {
     const text = String(a.text || '').trim().slice(0, 500); if (!text) return null;
-    const m = text.match(/^(einkauf|einkaufen|kaufen)\s*:\s*(.+)$/i);
-    if (m) { const xs = m[2].split(/,|\bund\b/).map(s => s.trim()).filter(Boolean).slice(0, 15);
-      for (const x of xs) await store.setItem({ id: uid(), type: 'shopping', title: x.charAt(0).toUpperCase() + x.slice(1), aisle: typeof guessAisle === 'function' ? guessAisle(x) : undefined, done: false, createdAt: new Date(at).toISOString() });
-      return xs.length + (xs.length === 1 ? ' Sache' : ' Sachen') + ' auf die Einkaufsliste'; }
+    // „Einkauf: …“ landet wie jede andere Notiz bei den Notizen (eine eigene Einkaufsliste gibt es nicht mehr)
     await store.setItem({ id: uid(), type: 'note', title: text, source: 'siri', createdAt: new Date(at).toISOString() });
     return 'Notiz im Eingangskorb';
   }
@@ -143,15 +140,15 @@ function pageMeldungen() {
     '<section class="card"><h2 class="label">Dieses Gerät</h2>' + pushStatusHtml() + '</section>' +
     '<section class="card"><h2 class="label">Berichte</h2>' +
       chk('morgen', 'Morgenbericht') + '<div class="formgrid">' + zeit('morgenZeit', 'Montag bis Freitag') + zeit('morgenWE', 'Samstag und Sonntag') + '</div>' +
-      chk('abend', 'Abendrückblick') + '<div class="formgrid">' + zeit('abendZeit', 'Jeden Tag um') + '</div>' +
-      chk('woche', 'Wochenplanung am Sonntag') + '<div class="formgrid">' + zeit('wocheZeit', 'Sonntag um') + '</div>' +
+      chk('abend', 'Abends: Das steht morgen an') + '<div class="formgrid">' + zeit('abendZeit', 'Jeden Tag um') + '</div>' +
+      chk('woche', 'Wochenvorschau am Sonntag') + '<div class="formgrid">' + zeit('wocheZeit', 'Sonntag um') + '</div>' +
       '<p class="sub">Die Berichte kommen pünktlich bis etwa 10 Minuten später. Den Text siehst du danach auch auf der Startseite.</p></section>' +
     '<section class="card"><h2 class="label">Unterwegs und Hinweise</h2>' +
       chk('losfahren', 'Wann ich losfahren muss') + '<div class="formgrid"><label class="field"><span>So viele Minuten vorher</span><input type="number" min="0" max="60" step="5" inputmode="numeric" data-pushset="losVor" value="' + esc(String(P.losVor)) + '"></label></div>' +
-      chk('unwetter', 'Amtliche Unwetterwarnungen') + chk('gewohnheit', 'Erinnerungen an Gewohnheiten') + chk('aufgabe', 'Erinnerungen an Aufgaben') +
-      '<p class="sub">In der Ruhezeit (Hinweise › Ruhezeit) kommen keine Hinweise, nur starke Unwetterwarnungen. Die Berichte kommen immer zu ihrer Uhrzeit.</p></section>' +
+      chk('unwetter', 'Amtliche Unwetterwarnungen') + chk('konflikt', 'Warnung, wenn sich heute oder morgen Termine überschneiden') +
+      '<p class="sub">In der Ruhezeit (normalerweise 21 bis 7 Uhr) kommen keine Warnungen zu Überschneidungen, nur starke Unwetterwarnungen. Die Berichte kommen immer zu ihrer Uhrzeit.</p></section>' +
     '<section class="card"><h2 class="label">Widget und Kurzbefehle</h2>' +
-      '<p>Mit der kostenlosen App <b>Scriptable</b> bekommst du Jarvis als Widget auf den Home-Bildschirm. Dazu kommen Kurzbefehle für Siri: <b>Arbeit starten</b>, <b>Pause</b>, <b>Feierabend</b>, <b>Jarvis notieren</b> und <b>Claude öffnen</b>.</p>' +
+      '<p>Mit der kostenlosen App <b>Scriptable</b> bekommst du Jarvis als Widget auf den Home-Bildschirm. Dazu kommen Kurzbefehle für Siri: <b>Jarvis notieren</b> und <b>Claude öffnen</b>.</p>' +
       (kastenKey ? '<div class="row"><button class="btn" data-push="code">' + (pushShowKey ? 'Code verbergen' : 'Einrichtungs-Code zeigen') + '</button></div>' : '<div class="row"><button class="btn primary" data-push="kasten"' + (pushBusy ? ' disabled' : '') + '>Widget einrichten</button></div>') +
       code + '<div class="row"><button class="btn" data-push="skript">Widget-Skript kopieren</button></div><p class="sub">So geht es: Scriptable öffnen, oben auf +, das Skript einfügen und „Jarvis“ nennen. Einmal starten und den Einrichtungs-Code einfügen. Die genauen Schritte stehen in der Anleitung im Ordner „widget“.</p></section>';
 }

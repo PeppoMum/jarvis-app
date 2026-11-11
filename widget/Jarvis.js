@@ -2,9 +2,9 @@
 // Einrichtung: siehe widget/ANLEITUNG.md. Beim ersten Start fragt das Skript nach dem Einrichtungs-Code aus der Jarvis-App
 // (Mehr › Einstellungen › Meldungen › Widget einrichten).
 //
-// Als Widget: zeigt Termine, Losfahren, Aufgaben, Wetter, Woche und die laufende Zeit. Antippen öffnet das Menü.
-// Aus Kurzbefehlen (Aktion „Skript ausführen“, Parameter):  start · start:uni · pause · stopp · notiz:<Text> · claude
-// Ohne Parameter in Scriptable geöffnet: Menü mit Arbeit starten, Pause, Feierabend, Notiz, Claude öffnen.
+// Als Widget: zeigt Termine, Losfahren, Wetter und die Woche. Antippen öffnet das Menü.
+// Aus Kurzbefehlen (Aktion „Skript ausführen“, Parameter):  notiz:<Text> · claude
+// Ohne Parameter in Scriptable geöffnet: Menü mit Notiz und Claude öffnen.
 
 const KEY = "jarvis.cfg", LAST = "jarvis.last", CACHE = "jarvis.widget", CLAUDE = "jarvis.claude";
 // Farben der drei App-Looks (wie in css/looks.css der App); das Widget nimmt den Look, der in der App eingestellt ist
@@ -56,9 +56,7 @@ async function auftrag(c, p) {
   p = String(p || "").trim(); const low = p.toLowerCase();
   let art, extra = {}, satz;
   if (low.startsWith("notiz")) { art = "notiz"; extra.text = p.replace(/^notiz\s*:?\s*/i, ""); if (!extra.text) return "Da war kein Text."; satz = "Notiert."; }
-  else if (low.startsWith("start")) { art = "start"; extra.cat = (low.split(":")[1] || "arbeit").trim(); satz = (CATS[extra.cat] || extra.cat) + " läuft."; }
-  else if (low.startsWith("pause") || low.startsWith("weiter")) { art = "pause"; satz = "Pause oder weiter, ist eingetragen."; }
-  else if (low.startsWith("stop") || low.startsWith("feierabend") || low.startsWith("ende")) { art = "stopp"; satz = "Feierabend. Die Zeit ist eingetragen."; }
+  else if (/^(start|pause|weiter|stop|feierabend|ende)\b/.test(low)) return "Die Zeiterfassung gibt es in Jarvis nicht mehr. Diesen Kurzbefehl kannst du löschen.";
   else { art = "notiz"; extra.text = p; satz = "Notiert."; }
   const ok = await senden(c, art, extra);
   return ok ? satz + " Jarvis übernimmt das, sobald die App offen ist." : "Das ging gerade nicht. Bitte nochmal versuchen.";
@@ -80,16 +78,14 @@ async function claudeOeffnen() { const u = await claudeLink(false); if (u) Safar
 
 async function menue(c) {
   const a = new Alert(); a.title = "Jarvis";
-  ["Arbeit starten", "Uni starten", "Pause / weiter", "Feierabend (Stopp)", "Notiz diktieren", "Claude öffnen", "Claude-Link ändern", "Einrichtung ändern"].forEach((x) => a.addAction(x)); a.addCancelAction("Abbrechen");
+  ["Notiz diktieren", "Claude öffnen", "Claude-Link ändern", "Einrichtung ändern"].forEach((x) => a.addAction(x)); a.addCancelAction("Abbrechen");
   const i = await a.presentSheet(); if (i === -1) return "zu";
-  if (i === 5) { await claudeOeffnen(); return "zu"; }
-  if (i === 6) { if (await claudeLink(true)) await hinweis("Gespeichert", "„Claude öffnen“ führt jetzt zu diesem Link."); return; }
-  if (i === 7) { await einrichten(); return; }
-  let p = ["start", "start:uni", "pause", "stopp"][i];
-  if (i === 4) { let t = ""; try { t = await Dictation.start("de-DE"); } catch (e) { }
-    if (!t) { const b = new Alert(); b.title = "Notiz"; b.addTextField("z. B. Einkauf: Milch, Brot"); b.addAction("Senden"); b.addCancelAction("Abbrechen"); if (await b.presentAlert() === -1) return; t = b.textFieldValue(0); }
-    p = "notiz:" + t; }
-  await hinweis("Jarvis", await auftrag(c, p));
+  if (i === 1) { await claudeOeffnen(); return "zu"; }
+  if (i === 2) { if (await claudeLink(true)) await hinweis("Gespeichert", "„Claude öffnen“ führt jetzt zu diesem Link."); return; }
+  if (i === 3) { await einrichten(); return; }
+  let t = ""; try { t = await Dictation.start("de-DE"); } catch (e) { }
+  if (!t) { const b = new Alert(); b.title = "Notiz"; b.addTextField("z. B. Milch kaufen"); b.addAction("Senden"); b.addCancelAction("Abbrechen"); if (await b.presentAlert() === -1) return; t = b.textFieldValue(0); }
+  await hinweis("Jarvis", await auftrag(c, "notiz:" + t));
 }
 
 /* ---------- Daten fürs Widget ---------- */
@@ -176,8 +172,6 @@ function naechstKarte(s, C, p, gr) {
   txt(k, p.nx.s + (p.nx.e ? " bis " + p.nx.e : "") + (p.nx.o ? " · " + p.nx.o : ""), F.normal(gr - 3), C.mu);
 }
 function zahlen(s, C, d, kurz) {
-  const a = d.auf.heute + d.auf.ueber;
-  txt(s, a + (a === 1 ? " Aufgabe" : " Aufgaben") + (d.auf.ueber ? (kurz ? ", " : ", ") + d.auf.ueber + " überfällig" : ""), F.halb(12), d.auf.ueber ? C.red : C.mu, 2);
   txt(s, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(12), d.woche.lvl === "g" ? C.mu : C.red);
 }
 function bauen(d, fam) {
@@ -187,7 +181,8 @@ function bauen(d, fam) {
   const p = plan(d);
   if (fam === "accessoryRectangular" || fam === "accessoryInline") {
     txt(w, p.nx ? (p.nx.morgen ? "Morgen " : "") + p.nx.s + " " + p.nx.ti : "Keine Termine mehr", F.fett(13), Color.white());
-    txt(w, (d.auf.heute + d.auf.ueber) + " Aufgaben" + (d.los ? " · los " + d.los.at : ""), F.halb(12), Color.white()); return w;
+    if (d.los) txt(w, "Los " + d.los.at, F.halb(12), Color.white());
+    return w;
   }
   if (fam === "small") {
     w.setPadding(14, 14, 14, 14);
@@ -201,7 +196,7 @@ function bauen(d, fam) {
       const unter = [p.nx.e ? "bis " + p.nx.e : "", p.nx.o || ""].filter(Boolean).join(" · "); if (unter) txt(w, unter, F.normal(11.5), C.mu);
     } else txt(w, "Heute keine Termine mehr", F.fett(14), C.tx, 2);
     w.addSpacer();
-    if (!schild(w, C, d, u, true)) { const a = d.auf.heute + d.auf.ueber; txt(w, a + (a === 1 ? " Aufgabe" : " Aufgaben") + (d.auf.ueber ? ", " + d.auf.ueber + " überf." : ""), F.halb(12), d.auf.ueber ? C.red : C.mu); }
+    schild(w, C, d, u, true);
     return w;
   }
   if (fam === "large") {
@@ -215,7 +210,6 @@ function bauen(d, fam) {
     w.addSpacer();
     const lin = w.addStack(); lin.size = new Size(0, 1); lin.backgroundColor = C.ln; lin.addSpacer(); w.addSpacer(9);
     const f = w.addStack(); f.layoutHorizontally(); f.centerAlignContent();
-    const a = d.auf.heute + d.auf.ueber; txt(f, a + (a === 1 ? " Aufgabe" : " Aufgaben") + (d.auf.ueber ? ", " + d.auf.ueber + " überfällig" : ""), F.halb(12), d.auf.ueber ? C.red : C.mu); f.addSpacer(14);
     txt(f, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(12), d.woche.lvl === "g" ? C.mu : C.red); f.addSpacer();
     const st = new Date(d.at); txt(f, "Stand " + String(st.getHours()).padStart(2, "0") + ":" + String(st.getMinutes()).padStart(2, "0"), F.halb(10.5), C.mu);
     return w;
