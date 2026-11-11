@@ -310,6 +310,11 @@ document.addEventListener('submit', async (ev) => {
     S.settings = { ...S.settings, workDays: wd.length ? wd : [3, 4, 5], workHours: num(fd.get('workHours')) ?? 20, vacationDays: String(fd.get('vacationDays') || '').trim() === '' ? null : num(fd.get('vacationDays')), vacationCarry: num(fd.get('vacationCarry')) || 0, rules: String(fd.get('rules') || '').trim().slice(0, 2000) };
     await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return;
   }
+  if (kind === 'slimme') {
+    const fd = new FormData(f), n = Number(String(fd.get('workHours') ?? '').replace(',', '.'));
+    S.settings = { ...S.settings, name: String(fd.get('name') || '').trim().slice(0, 40), workHours: String(fd.get('workHours') ?? '').trim() === '' || isNaN(n) ? 20 : Math.max(0, Math.min(60, Math.round(n * 2) / 2)) };
+    await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return;
+  }
   if (kind === 'name') { const v = f.querySelector('input').value.trim().slice(0, 40); S.settings = { ...S.settings, name: v }; await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return; }
   if (kind === 'edit') {
     const e = { ...S.editing };

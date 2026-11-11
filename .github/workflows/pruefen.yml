@@ -1,0 +1,37 @@
+name: Prüfen
+# Läuft bei jedem Vorschlag (Pull Request) und bei jeder Änderung an main.
+# Grüner Haken = alle Prüfungen bestanden. Rotes Kreuz = bitte nicht auf „Merge“ drücken.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pruefen-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Europe/Berlin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Werkzeuge holen (Browser für die App-Prüfung)
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+      - name: App (Heute, Woche, Notizen, Einstellungen, Lesbarkeit)
+        run: node pruefen/app.mjs
+      - name: Meldungen und Widget
+        run: |
+          cd push && npm install --no-save --no-audit --no-fund ical.js@2.1.0 && cd ..
+          node push/test.mjs
+      - name: Fokus-App
+        run: |
+          if [ -f fokus/test.mjs ]; then node fokus/test.mjs; else echo "Noch keine Fokus-App im Repo."; fi

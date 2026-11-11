@@ -876,3 +876,14 @@ html{-webkit-tap-highlight-color:transparent;background:var(--bg)}
 /* Startseite „Was machst du gerade?“: heute erfasst + vorbei, aber nicht erfasst (29.10.) */
 .jtoday-t{display:block;margin-top:6px;color:var(--mu);font-size:13px;text-decoration:none}.jtoday-t b{color:var(--tx)}
 .jopen{border-top:1px solid var(--ln);padding-top:8px;margin-top:4px}.jopen .listrow{gap:8px}.jopen .listrow .row{gap:6px;flex-wrap:nowrap;flex-shrink:0}
+
+/* ===== Schlanke App (11.11.2026): Heute mit Wetter-Zeilen, Losfahr-Zeile, Notizen, freie Lücken nur zum Ansehen ===== */
+.slimlines{margin-top:8px;display:flex;flex-direction:column;gap:2px}
+.slimlines .sub{margin:0;font-size:14px}
+.slimdep{font-weight:600;color:var(--tx)}
+.slimnote{flex-wrap:wrap}
+.slimnote .lt{flex:1 1 220px}
+.slimnote .row{gap:6px;margin-left:auto}
+div.tli.free,div.jb.free{cursor:default}
+.jtrack div.jb.free:hover{background:transparent}
+.tl div.tli.free:hover .tt{color:var(--mu)}

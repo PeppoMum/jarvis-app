@@ -410,15 +410,26 @@ function pageMonth() {
   const t = todayISO(), m0 = S.month || t.slice(0, 7) + '-01', y = Number(m0.slice(0, 4)), mo = Number(m0.slice(5, 7));
   const last = isoDate(new Date(y, mo, 0)), end = addDays(mondayOf(last), 6), cells = [];
   for (let d = mondayOf(m0); d <= end; d = addDays(d, 1)) cells.push(d);
-  const head = '<div class="pagehead"><div><h1 class="page">' + MONL[mo - 1] + ' ' + y + '</h1></div><div class="row"><div class="weeknav"><button class="iconbtn" data-jt="mnav" data-n="-1" aria-label="Voriger Monat">' + ICON.chevl + '</button><button class="iconbtn" data-jt="mnav" data-n="1" aria-label="Nächster Monat">' + ICON.chev + '</button>' + (m0 !== t.slice(0, 7) + '-01' ? '<button class="btn ghost" data-jt="mnav" data-n="0">Heute</button>' : '') + '</div>' + viewSeg() + '<button class="btn" data-jt="pplan">Zeit einplanen</button></div></div>';
+  const head = '<div class="pagehead"><div><h1 class="page">' + MONL[mo - 1] + ' ' + y + '</h1></div><div class="row"><div class="weeknav"><button class="iconbtn" data-jt="mnav" data-n="-1" aria-label="Voriger Monat">' + ICON.chevl + '</button><button class="iconbtn" data-jt="mnav" data-n="1" aria-label="Nächster Monat">' + ICON.chev + '</button>' + (m0 !== t.slice(0, 7) + '-01' ? '<button class="btn ghost" data-jt="mnav" data-n="0">Heute</button>' : '') + '</div>' + viewSeg() + '<button class="btn" data-new="event">+ Termin</button></div></div>';
   return head + '<div class="month">' + ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(x => '<div class="mh" aria-hidden="true">' + x + '</div>').join('') + cells.map(d => {
-    const bl = blocksOn(d), due = openTasks().filter(x => x.date === d).length;
+    const bl = blocksOn(d), due = 0;   // Aufgaben sind ausgeblendet (schlanke App)
     return '<button class="mday' + (d.slice(0, 7) !== m0.slice(0, 7) ? ' out' : '') + (d === t ? ' today' : '') + (offOn(d) || holidayOn(d) ? ' offday' : '') + '" data-jt="mday" data-d="' + d + '" aria-label="' + esc(fmtLong(d) + ': ' + (bl.length ? bl.map(b => (b.start ? b.start + ' ' : '') + b.title).join(', ') : 'frei')) + '"><span class="mn">' + dObj(d).getDate() + '</span>' +
       bl.slice(0, 3).map(b => '<span class="mb' + (isTransit(b) ? ' trip' : '') + '"><i class="' + (b.area ? 'a-' + esc(b.area) : '') + '"></i><span>' + esc((b.start ? b.start + ' ' : '') + b.title) + '</span></span>').join('') + (bl.length > 3 ? '<span class="mm">+' + (bl.length - 3) + '</span>' : '') + (due ? '<span class="mm">☐ ' + due + '</span>' : '') + '</button>';
   }).join('') + '</div>';
 }
 
-/* ----- Einstellungen: Planen ----- */
+/* ----- Einstellungen: Fahrzeiten (schlank seit 11.11.2026). Davon hängt ab, wann Jarvis „spätestens losfahren“ meldet. ----- */
+function travelSettingsCard() {
+  const c = planCfg(), tr = c.travel.concat([{ name: '', words: '', min: '' }]).slice(0, 6);
+  const fld = (name, label, val, type, attrs) => '<label class="field"><span>' + label + '</span><input name="' + name + '" type="' + type + '" value="' + esc(val) + '"' + (attrs || '') + '></label>';
+  return '<section class="card"><h2 class="label">Fahrzeiten</h2><form data-form="jtravel" style="display:flex;flex-direction:column;gap:12px">' +
+    '<p class="sub">Steht eins der Stichwörter im Titel oder Ort eines Termins, rechnet Jarvis die Fahrt davor ein und sagt dir, wann du spätestens los musst. Bei „Homeoffice“ oder „online“ nicht. Für Termine aus dem Trainer-Cockpit zählt nur die Zeile „Abfahrt:“.</p>' +
+    tr.map((x, i) => '<div class="formgrid">' + fld('tn' + i, 'Ort', x.name, 'text', ' placeholder="z. B. Uni"') + fld('tw' + i, 'Stichwörter im Termin', x.words, 'text', ' placeholder="z. B. uni, campus"') + fld('tm' + i, 'Minuten (eine Strecke)', x.min, 'number', ' min="0" max="240" step="5"') + '</div>').join('') +
+    '<label class="toggle"><input type="checkbox" name="holidays"' + (c.holidays !== false ? ' checked' : '') + '> Feiertage in NRW im Kalender zeigen</label>' +
+    '<div class="row"><button class="btn primary" type="submit">Speichern</button></div></form></section>';
+}
+
+/* ----- Einstellungen: Planen (alte Fassung, nicht mehr angezeigt) ----- */
 function planSettingsCard() {
   const c = planCfg();
   const freeOpts = [['', 'keine'], ['00:00', 'ganzer Tag'], ...['12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'].map(h => [h + ':00', 'ab ' + h + ' Uhr'])];
@@ -503,7 +514,7 @@ document.addEventListener('change', (ev) => {
 });
 document.addEventListener('submit', async (ev) => {
   const f = ev.target, kind = f.dataset.form;
-  if (!['jtask', 'jwait', 'jsome', 'jplan'].includes(kind)) return;
+  if (!['jtask', 'jwait', 'jsome', 'jplan', 'jtravel'].includes(kind)) return;
   ev.preventDefault();
   const fd = new FormData(f), ts = new Date().toISOString();
   if (kind === 'jtask' || kind === 'jsome') {
@@ -518,6 +529,17 @@ document.addEventListener('submit', async (ev) => {
     const who = String(fd.get('who') || '').trim(); if (who) it.who = who.slice(0, 80);
     f.querySelectorAll('[data-keep]').forEach(x => { x.value = ''; });
     await withRetry(() => store.setItem(it)); showToast('Eingetragen. Jarvis erinnert dich ' + relDay(it.followUp) + '.'); return;
+  }
+  // Nur Fahrzeiten und Feiertage ändern, alle anderen Planungs-Werte bleiben wie sie sind
+  if (kind === 'jtravel') {
+    const travel = [];
+    for (let i = 0; i < 6; i++) {
+      const name = String(fd.get('tn' + i) || '').trim(); if (!name) continue;
+      const m = Number(String(fd.get('tm' + i) ?? '').replace(',', '.'));
+      travel.push({ name: name.slice(0, 40), words: (String(fd.get('tw' + i) || '').trim() || name).slice(0, 200), min: isNaN(m) ? 0 : Math.max(0, Math.min(240, Math.round(m))) });
+    }
+    const p = S.settings.plan || {};
+    S.settings = { ...S.settings, plan: { ...p, travel, holidays: fd.get('holidays') === 'on' } }; await store.setSettings(S.settings); showToast('Gespeichert.'); render(); return;
   }
   if (kind === 'jplan') {
     const num = (k, lo, hi, d) => { const n = Number(String(fd.get(k) ?? '').replace(',', '.')); return String(fd.get(k) ?? '').trim() === '' || isNaN(n) ? d : Math.max(lo, Math.min(hi, n)); };
