@@ -171,7 +171,26 @@ function cleanItem(x) {
   if (type === 'task' && REPEATS.some(([v]) => v && v === x.repeat)) { it.repeat = x.repeat; if (!it.date) it.date = todayISO(); }
   return it;
 }
+// Schnell notieren (schlank seit 11.11.2026): Zeilen mit Tag oder Uhrzeit („Fr 10 Uhr Zahnarzt“) werden ein Termin zum Bestätigen,
+// alles andere wird eine Notiz. Keine Aufgaben, Einkäufe, Zeiten oder Fragen mehr; das Planen passiert in Claude.
 async function ask(text, opts = {}) {
+  text = String(text || '').trim();
+  if (!text || S.busy) return;
+  const fromNote = opts.noteIds || opts.noteId || null;
+  const evs = [], rest = [];
+  for (const line of text.split(/\n+/).map(x => x.trim()).filter(Boolean)) {
+    const found = quickNote(line).items.filter(x => x && x.type === 'event');
+    if (found.length) evs.push(...found); else rest.push(line);
+  }
+  if (!evs.length) { await saveAsNote(text, fromNote, null); return; }
+  if (rest.length && !fromNote) await withRetry(() => store.setItem({ id: uid(), type: 'note', title: rest.join('\n').slice(0, 2000), createdAt: new Date().toISOString() }));
+  const reply = rest.length && !fromNote ? 'Der Rest steht jetzt unter Notizen.' : '';
+  S.pending = { text, reply, items: evs, fromNote }; render();
+  if (opts.voice || S.settings.speak) speak((reply ? reply + ' ' : '') + 'Bitte kurz bestätigen.');
+  setTimeout(() => { const f = document.querySelector('.sheet input, .sheet select'); f && f.focus(); }, 0);
+}
+/* Alte, volle Eingabe (bis 11.11.2026; wird nicht mehr aufgerufen, fliegt beim endgültigen Aufräumen raus) */
+async function askOld(text, opts = {}) {
   text = text.trim();
   if (!text || S.busy) return;
   const qm = text.match(/was (?:schaffe|kann|mache) ich in (\d{1,3}) ?min/i);
@@ -208,9 +227,9 @@ async function ask(text, opts = {}) {
 }
 async function saveAsNote(text, existingId, msg) {
   if (!existingId || Array.isArray(existingId)) { if (!existingId) await withRetry(() => store.setItem({ id: uid(), type: 'note', title: text, createdAt: new Date().toISOString() })); }
-  await pushChat([{ role: 'me', text }, { role: 'jarvis', text: msg || 'Als Notiz im Eingangskorb gespeichert.' }]);
+  await pushChat([{ role: 'me', text }, { role: 'jarvis', text: msg || 'Als Notiz gespeichert.' }]);
   clearComposers();
-  showToast(msg ? 'Als Notiz gespeichert.' : 'Im Eingangskorb gespeichert.');
+  showToast('Als Notiz gespeichert.');
 }
 async function pushChat(msgs) {
   const log = [...S.chat, ...msgs.map(m => ({ ...m, at: new Date().toISOString() }))].slice(-40);

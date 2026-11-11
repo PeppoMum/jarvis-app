@@ -1,31 +1,14 @@
 'use strict';
 /* Jarvis-App – 03-oberflaeche.js (aus Jarvis in Claude, Zeilen 1342–2222 von V48) */
 /* ===================== Rendern ===================== */
+// Schlanke App (11.11.2026, „Claude plant, Jarvis zeigt“): nur noch Heute, Woche, Notizen und die Einstellungen.
+// Alle anderen Bereiche sind ausgeblendet, ihre Daten bleiben gespeichert. Unbekannte Adressen (#mail, #aufgaben …) landen auf Heute.
 const ROUTES = [
-  { id: 'heute', label: 'Start', icon: 'home', top: 1, bottom: 1 },
+  { id: 'heute', label: 'Heute', icon: 'home', top: 1, bottom: 1 },
   { id: 'woche', label: 'Woche', icon: 'week', top: 1, bottom: 1 },
-  { id: 'aufgaben', label: 'Aufgaben', icon: 'check', top: 1 },
-  { id: 'uni', label: 'Uni', icon: 'uni', top: 1 },
-  { id: 'arbeit', label: 'Arbeit', icon: 'work', top: 1 },
-  { id: 'einkauf', label: 'Einkauf', icon: 'cart', top: 1, bottom: 1 },
-  { id: 'eingang', label: 'Eingangskorb', short: 'Eingang', icon: 'inbox', top: 1, bottom: 1 },
-  { id: 'mehr', label: 'Mehr', icon: 'more', top: 1, bottom: 1 },
-  { id: 'ideen', label: 'Ideen', icon: 'idea' },
-  { id: 'ausgaben', label: 'Ausgaben', icon: 'money' },
-  { id: 'gedaechtnis', label: 'Gedächtnis', icon: 'brain' },
-  { id: 'suche', label: 'Suche', icon: 'search' },
-  { id: 'mail', label: 'Mails', icon: 'inbox' },
+  { id: 'eingang', label: 'Notizen', icon: 'inbox', top: 1, bottom: 1 },
   { id: 'berichte', label: 'Meldungen', icon: 'today' },
-  { id: 'zeiten', label: 'Zeiten', icon: 'week' },
-  { id: 'gewohnheiten', label: 'Gewohnheiten', icon: 'today' },
-  { id: 'rueckblick', label: 'Rückblick', icon: 'week' },
-  { id: 'essen', label: 'Essensplan', icon: 'cart' },
-  { id: 'geburtstage', label: 'Geburtstage', icon: 'today' },
   { id: 'papierkorb', label: 'Papierkorb', icon: 'trash' },
-  { id: 'vertraege', label: 'Verträge', icon: 'money' },
-  { id: 'haushalt', label: 'Haushalt & Listen', icon: 'cart' },
-  { id: 'protokoll', label: 'Protokoll', icon: 'week' },
-  { id: 'hinweise', label: 'Hinweise', icon: 'today' },
   { id: 'einstellungen', label: 'Einstellungen', icon: 'gear' }
 ];
 let lastFocus = null;
@@ -42,9 +25,8 @@ function render() {
   const selStart = active && 'selectionStart' in active ? active.selectionStart : null;
 
   const app = $('#app');
-  const notes = byType('note').length;
-  const shop = byType('shopping').filter(i => !i.done).length;
-  const badge = id => id === 'eingang' && notes ? ' <span class="badge">' + notes + '</span>' : id === 'einkauf' && shop ? ' <span class="badge">' + shop + '</span>' : '';
+  const notes = slimNotes().length;
+  const badge = id => id === 'eingang' && notes ? ' <span class="badge">' + notes + '</span>' : '';
   const topIds = ROUTES.filter(r => r.top && r.id !== 'mehr').map(r => r.id), cur = menuOf(S.route);
   const navLinks = ROUTES.filter(r => r.top && !hiddenAreas().includes(r.id)).map(r => '<a href="#' + r.id + '" data-go="' + r.id + '"' + ((cur === r.id || (r.id === 'mehr' && !topIds.includes(cur) && cur !== 'einstellungen')) ? ' aria-current="page"' : '') + '>' + esc(r.label) + badge(r.id) + '</a>').join('');
   const now = new Date();
@@ -53,8 +35,8 @@ function render() {
     '<header class="top">' +
       '<a class="brand" href="#heute" data-go="heute" aria-label="Jarvis, zur Startseite"><span class="dot"></span>' + 'Jarvis' + '</a>' +
       '<nav class="nav" aria-label="Hauptmenü">' + navLinks + '</nav>' +
-      '<div class="topmeta"><span>' + WDS[now.getDay()] + ', ' + now.getDate() + '. ' + MON[now.getMonth()] + '</span><span class="clock">' + nowHM() + '</span>' + topFocus() +
-      '<a class="iconbtn" href="#suche" data-go="suche" aria-label="Suche">' + ICON.search + '</a><a class="iconbtn" href="#einstellungen" data-go="einstellungen" aria-label="Einstellungen"' + (S.route === 'einstellungen' ? ' aria-current="page"' : '') + '>' + ICON.gear + '</a></div>' +
+      '<div class="topmeta"><span>' + WDS[now.getDay()] + ', ' + now.getDate() + '. ' + MON[now.getMonth()] + '</span><span class="clock">' + nowHM() + '</span>' +
+      '<a class="iconbtn" href="#einstellungen" data-go="einstellungen" aria-label="Einstellungen"' + (S.route === 'einstellungen' ? ' aria-current="page"' : '') + '>' + ICON.gear + '</a></div>' +
     '</header>' +
     (!S.online && S.loaded ? '<p class="offline">Gerade nur auf diesem Gerät gespeichert. Sobald Jarvis wieder verbunden ist, sind deine Daten auf allen Geräten gleich.</p>' : '') +
     '<main id="main">' + page() + '</main>' +
@@ -132,8 +114,133 @@ function pageInner() {
   }
 }
 
-/* ----- Heute ----- */
+/* ----- Heute (schlank, 11.11.2026): Als Nächstes, dein Tag, Wetter, Notizen. Keine Fragen, kein Abhaken, keine Zahlen. ----- */
+// Notizen = Eingangskorb und Ideen in einer Liste, neueste zuerst
+function slimNotes() { return byType('note').concat(byType('idea')).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))); }
+function noteRowHtml(n) {
+  const when = n.createdAt ? fmtShort(isoDate(new Date(n.createdAt))) : '';
+  return '<div class="listrow slimnote"><span class="lt">' + esc(n.title) + (n.note ? '<small>' + esc(n.note) + '</small>' : '') + (when ? '<small>' + esc(when) + '</small>' : '') + '</span>' +
+    '<span class="row"><button class="btn ghost sm" data-convert="' + esc(n.id) + '" data-to="event">Termin daraus</button><button class="btn sm" data-del="' + esc(n.id) + '" aria-label="Erledigt: ' + esc(n.title) + '">Erledigt</button></span></div>';
+}
+// Als Nächstes: der nächste echte Termin (Fahrten zählen nicht, die stehen als Losfahr-Zeile darunter)
+function slimNext() {
+  const t = todayISO(), now = hmToMin(nowHM());
+  for (let i = 0; i <= 14; i++) {
+    const d = addDays(t, i), n = eventsOn(d).filter(e => !isTransit(e) && (i > 0 || (hmToMin(e.end || e.start) ?? 0) >= now));
+    if (n.length) return n[0];
+  }
+  return null;
+}
+// Wie komme ich hin? Losfahr-Zeit (Fahrzeiten oder „Abfahrt:“-Zeile des Cockpits), sonst eine Fahrt direkt davor aus dem Kalender
+function slimDeparture(b) {
+  if (!b || !b.start) return null;
+  const d = departures(b.date).find(x => x.b.id === b.id);
+  if (d) return 'Spätestens ' + d.at + ' Uhr losfahren' + (d.wet ? ', Regen gemeldet' : '');
+  const s = hmToMin(b.start), ride = blocksOn(b.date).filter(x => x.start && x.end && isTransit(x) && hmToMin(x.end) <= s && hmToMin(x.end) >= s - 45).pop();
+  return ride ? 'Davor: ' + ride.title + ' um ' + ride.start + ' Uhr' : null;
+}
+/* ----- Neu im Plan: was sich im Google Kalender seit deinem letzten Blick geändert hat (neu, verschoben, weggefallen) -----
+   Gemerkt wird ein Abbild der nächsten 14 Tage (meta/planseen, auf allen Geräten gleich). Verglichen wird nur, wenn der Kalender
+   vollständig geladen ist, sonst sähe ein Ladefehler wie „alles weggefallen“ aus. Fahrten zählen nicht mit. */
+const PS_TAGE = 14;
+function planNow() {
+  const t = todayISO(), ev = {};
+  for (let i = 0; i < PS_TAGE; i++) blocksOn(addDays(t, i)).forEach(b => { if (b.kind === 'google' && !isTransit(b) && !ev[b.gid]) ev[b.gid] = [b.date, b.start || '', b.end || '', b.title]; });
+  return { from: t, to: addDays(t, PS_TAGE - 1), ev };
+}
+const planReady = () => S.gcalState === 'ok' && !S.gcalPartial && !!S.planseenLoaded;
+function planChanges() {
+  const seen = S.planseen;
+  if (!planReady() || !seen || !seen.ev) return [];
+  const cur = planNow(), out = [];
+  Object.entries(cur.ev).forEach(([k, v]) => {
+    const o = seen.ev[k];
+    if (!o) { if (v[0] <= seen.to) out.push({ typ: 'neu', v }); }
+    else if (o[0] !== v[0] || o[1] !== v[1] || o[2] !== v[2]) out.push({ typ: 'verschoben', v, o });
+  });
+  Object.entries(seen.ev).forEach(([k, o]) => {
+    if (cur.ev[k] || o[0] < cur.from || o[0] > cur.to) return;
+    const g = (S.gcal || []).find(x => x.gid === k);   // aus den 14 Tagen herausgeschoben: verschoben, nicht weggefallen
+    out.push(g ? { typ: 'verschoben', v: [g.date, g.start || '', g.end || '', g.title], o } : { typ: 'weg', o });
+  });
+  const key = c => (c.v || c.o)[0] + ' ' + ((c.v || c.o)[1] || '00:00');
+  return out.sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
+}
+async function planSeen() { S._psBusy = true; try { await store.setMeta('planseen', { ...planNow(), at: new Date().toISOString() }); } finally { S._psBusy = false; } }
+// Erstes Mal und an Tagen ohne Änderung still mitziehen (höchstens einmal am Tag), damit neue Tage am Ende der 14 Tage mitzählen
+function planSeenAuto(chg) {
+  if (!planReady() || S._psBusy || chg.length) return;
+  if (!S.planseen || !S.planseen.ev || S.planseen.to < addDays(todayISO(), PS_TAGE - 1)) setTimeout(() => { if (!S._psBusy) planSeen(); }, 0);
+}
+// Link zum Planungs-Projekt in Claude (in den Einstellungen hinterlegt), sonst die Projekt-Übersicht
+const planUrlOk = u => /^https:\/\/claude\.ai\/[^\s"'<>]*$/.test(String(u || ''));
+const planUrl = () => planUrlOk(S.settings.planUrl) ? S.settings.planUrl : 'https://claude.ai/projects';
+const umplanenBtn = (cls = 'btn ghost sm') => '<a class="' + cls + ' umplanen" href="' + esc(planUrl()) + '" target="_blank" rel="noopener">In Claude umplanen</a>';
+function planChangesCard() {
+  const chg = planChanges();
+  planSeenAuto(chg);
+  if (!chg.length) return '';
+  const when = v => fmtShort(v[0]) + (v[1] ? ', ' + v[1] + (v[2] ? '–' + v[2] : '') : ', ganztägig');
+  const row = c => '<li class="slimchg ' + c.typ + '"><b>' + (c.typ === 'neu' ? 'Neu' : c.typ === 'weg' ? 'Fällt weg' : 'Verschoben') + ':</b> ' +
+    esc((c.v || c.o)[3]) + ' · ' + (c.typ === 'verschoben' ? esc(when(c.o)) + ' → ' + esc(when(c.v)) : esc(when(c.v || c.o))) + '</li>';
+  return '<section class="card jlist slimneu" aria-labelledby="h-neu"><div class="lhead"><h2 class="label" id="h-neu">Neu im Plan</h2><button class="btn sm" data-act="planseen">Gesehen</button></div>' +
+    '<ul class="slimchgs">' + chg.slice(0, 8).map(row).join('') + (chg.length > 8 ? '<li class="slimchg">und ' + (chg.length - 8) + ' weitere</li>' : '') + '</ul>' +
+    '<div class="row" style="margin-top:8px">' + umplanenBtn('btn sm') + '</div></section>';
+}
 function pageToday() {
+  const t = todayISO(), nowM = hmToMin(nowHM());
+  const tmw = dayViewTomorrow(), dv = tmw ? addDays(t, 1) : t, nowV = tmw ? -1 : nowM;
+  // Kopf: Datum, Begrüßung, eine Zeile Wetter (mit amtlicher Warnung), Geburtstage
+  const g = greeting(), gi = g.lastIndexOf(', ');
+  const gh = gi > 0 ? esc(g.slice(0, gi + 1)) + ' <span>' + esc(g.slice(gi + 2)) + '</span>' : esc(g);
+  const w = wxDay(t), al = (S.wxAlerts || [])[0];
+  const lines = [];
+  if (w) lines.push('Wetter: ' + w.hi + '° / ' + w.lo + '°, ' + w.phrase + (w.rain >= 40 ? ', Regen ' + w.rain + ' %' : ''));
+  if (al) lines.push('Warnung: ' + al.title + (al.until ? ' (bis ' + al.until + ')' : ''));
+  bdaysOn(t).forEach(x => lines.push('Geburtstag: ' + x.name + (x.age ? ' (' + x.age + ')' : '')));
+  const head = '<section class="jhead" aria-label="Überblick"><div class="jhl"><div class="datel">' + esc(fmtLong(t)) + '</div><h1 class="greet">' + gh + '</h1>' +
+    (lines.length ? '<div class="slimlines">' + lines.map(l => '<p class="sub">' + esc(l) + '</p>').join('') + '</div>' : '') + '</div></section>';
+
+  // Als Nächstes, mit Losfahr-Zeit
+  const nx = slimNext(), dep = nx ? slimDeparture(nx) : null;
+  const nextHtml = nx ? '<div class="next"><div class="row" style="justify-content:space-between"><span class="label" style="margin:0">Als Nächstes</span><span class="cd">' + esc(countdown(nx)) + '</span></div>' +
+      '<div class="t">' + esc(nx.title) + '</div><div class="meta">' + (nx.date !== t ? esc(fmtShort(nx.date)) + ' · ' : '') + esc(nx.start || 'ganztägig') + (nx.end ? '–' + esc(nx.end) : '') + (nx.place ? ' · ' + esc(nx.place) : '') + '</div>' +
+      (dep ? '<div class="meta slimdep">' + esc(dep) + '</div>' : '') + '</div>'
+    : '<div class="next"><span class="label" style="margin:0">Als Nächstes</span><div class="meta">In den nächsten 14 Tagen steht nichts im Kalender.</div></div>';
+
+  // Dein Tag: Zeitleiste und Liste mit Terminen, blassen Fahrten und freien Lücken (Lücken nur zum Ansehen)
+  const allBlocks = blocksOn(dv);
+  const freeRows = freeSlotsOn(dv).filter(z => z.e - z.s >= 30).map(z => ({ free: 1, s: z.s, e: z.e }));
+  const tlRows = allBlocks.map(e => ({ e, s: e.start ? hmToMin(e.start) : -1 })).concat(freeRows).sort((a, b) => a.s - b.s);
+  const freeRow = z => '<div class="tli free" aria-label="Frei von ' + minToHM(z.s) + ' bis ' + minToHM(z.e) + '"><span class="tm">' + minToHM(z.s) + '</span><span class="bar"></span><span><span class="tt">Frei bis ' + minToHM(z.e) + '</span><br><span class="ts">' + esc(fmtMin(z.e - z.s)) + ' Luft</span></span></div>';
+  const blockRow = e => {
+    const endM = hmToMin(e.end || e.start), stM = hmToMin(e.start);
+    const cls = e.start && endM != null && endM < nowV ? ' past' : (stM != null && stM <= nowV && endM >= nowV ? ' now' : '');
+    const sub = [isTransit(e) ? 'Fahrt' : '', e.kind === 'class' ? 'Vorlesung' : e.kind === 'google' ? (e.calName ? calLabel(e) + '-Kalender' : 'Google Kalender') : (e.area ? AREAS[e.area] : ''), e.end ? 'bis ' + e.end : '', e.place, wxText(e)].filter(Boolean).join(' · ');
+    return '<button class="tli' + cls + (isTransit(e) ? ' trip' : '') + '"' + blkAttr(e) + '><span class="tm">' + esc(e.start || 'ganzt.') + '</span><span class="bar ' + (e.area ? 'a-' + esc(e.area) : '') + '"></span>' +
+      '<span><span class="tt"><span>' + esc(e.title) + '</span></span><br><span class="ts">' + esc(sub) + '</span></span><span class="cal">' + calBadge(e) + '</span></button>';
+  };
+  const tl = tlRows.length ? '<div class="tl">' + tlRows.map(r => r.free ? freeRow(r) : blockRow(r.e)).join('') + '</div>'
+    : '<p class="empty">' + (tmw ? 'Für morgen steht noch nichts im Kalender.' : 'Heute stehen keine Termine an.') + '</p>';
+  const jt = jTrack(dv, allBlocks, freeRows, nowV);
+  const wxM = tmw ? wxDay(dv) : null;
+  const dvLine = tmw ? '<p class="sub dvline">' + esc(fmtLong(dv) + (wxM ? ' · ' + wxM.hi + '° / ' + wxM.lo + '°, ' + wxM.phrase + (wxM.rain >= 40 ? ' (' + wxM.rain + ' % Regen)' : '') : '')) + '</p>' : '';
+  // Am PC steht „Als Nächstes“ als Zeile im Kopf des Tagesplans, am Handy als eigene Karte darüber
+  const chip = nx && !tmw ? '<span class="jnx"><i>Als Nächstes</i><b>' + esc(nx.title) + '</b><span>' + esc([countdown(nx), (nx.date !== t ? fmtShort(nx.date) + ' ' : '') + (nx.start || 'ganztägig') + (nx.end ? '–' + nx.end : ''), nx.place, dep].filter(Boolean).join(' · ')) + '</span></span>' : '';
+  const plan = '<section class="card jplan has-jt" aria-labelledby="h-tl"><div class="jph"><h2 class="label" id="h-tl">' + (tmw ? 'Dein Tag morgen' : 'Dein Tag') + '</h2><span class="jline"></span>' + chip + '<span class="row" style="gap:2px">' + dayToggle() + '</span></div>' +
+    dvLine + calNote() + jt + tl + '<div class="row slimplan">' + umplanenBtn() + '</div></section>';
+
+  // Nicht vergessen: die neuesten Notizen
+  const ns = slimNotes();
+  const notes = ns.length ? '<section class="card jlist" aria-labelledby="h-nv"><div class="lhead"><h2 class="label" id="h-nv">Nicht vergessen</h2>' + (ns.length > 5 ? '<a class="btn ghost sm" href="#eingang" data-go="eingang">Alle ' + ns.length + '</a>' : '') + '</div>' +
+    ns.slice(0, 5).map(noteRowHtml).join('') + '</section>' : '';
+
+  return '<div class="today jtoday slim">' + head + '<div class="t-ask">' + composer('t') + '</div>' +
+    '<div class="jnext-ph">' + nextHtml + '</div>' + planChangesCard() + plan + notes + '</div>';
+}
+
+/* ----- Heute (alte, volle Fassung bis 11.11.2026; wird nicht mehr aufgerufen, fliegt beim endgültigen Aufräumen raus) ----- */
+function pageTodayOld() {
   const t = todayISO();
   const evs = eventsOn(t);
   const b = taskBuckets();
@@ -404,7 +511,7 @@ function jTrack(t, blocks, free, nowM) {
     return '<button class="jb' + (past ? ' past' : '') + (isTransit(b) ? ' trip' : '') + (b === nxt ? ' nx' : '') + '" style="' + pos + '" title="' + esc(lab) + '" aria-label="' + esc(lab) + '"' + blkAttr(b) + '>' +
       '<b>' + esc(b.start) + '</b><span>' + esc(b.title) + '</span>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</button>';
   };
-  const fr = free.filter(z => z.e > h0 * 60 && z.s < h1 * 60).map(z => '<button type="button" class="jb free" data-dpgap="' + t + '|' + z.s + '|' + z.e + '" style="left:' + pc(z.s) + ';width:' + wd(z.s, z.e) + ';' + top(0) + '" title="Frei ' + minToHM(z.s) + '–' + minToHM(z.e) + ', antippen zum Füllen" aria-label="Lücke ' + minToHM(z.s) + ' bis ' + minToHM(z.e) + ' füllen"><b>' + minToHM(z.s) + ' · frei</b><span>' + esc(fmtMin(z.e - z.s)) + ' Luft</span></button>').join('');
+  const fr = free.filter(z => z.e > h0 * 60 && z.s < h1 * 60).map(z => '<div class="jb free" style="left:' + pc(z.s) + ';width:' + wd(z.s, z.e) + ';' + top(0) + '" title="Frei ' + minToHM(z.s) + '–' + minToHM(z.e) + '" aria-label="Frei von ' + minToHM(z.s) + ' bis ' + minToHM(z.e) + '"><b>' + minToHM(z.s) + ' · frei</b><span>' + esc(fmtMin(z.e - z.s)) + ' Luft</span></div>').join('');
   const now = nowM >= h0 * 60 && nowM <= h1 * 60 ? '<div class="jnow" style="left:' + pc(nowM) + '"><i>JETZT</i></div>' : '';
   return '<div class="jtrack" aria-hidden="false">' + (allday.length ? '<div class="jall">' + allday.map(b => '<span>' + esc(b.title) + '</span>').join('') + '</div>' : '') +
     '<div class="jh" aria-hidden="true">' + hrs.join('') + '</div>' +
@@ -677,20 +784,13 @@ function chatLog(n) {
   return '<div class="chatlog">' + log.map(m => '<div class="' + (m.role === 'me' ? 'mebubble' : 'jmsg') + '">' + esc(m.text) + '</div>').join('') + '</div>';
 }
 
-/* ----- Eingangskorb ----- */
+/* ----- Notizen (Eingangskorb und Ideen in einer Liste, schlank seit 11.11.2026) ----- */
 function pageInbox() {
-  const notes = byType('note').sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-  return '<div class="listpage"><div><h1 class="page">Eingangskorb</h1></div>' +
-    '<section class="card"><h2 class="label">Noch einzusortieren</h2>' +
-      (notes.length ? notes.map(n => '<div class="note"><div style="white-space:pre-wrap;overflow-wrap:anywhere">' + esc(n.title) + '</div><div class="row">' +
-        ['task', 'event', 'shopping', 'idea'].map(t => '<button class="btn" data-convert="' + esc(n.id) + '" data-to="' + t + '">' + TYPES[t] + '</button>').join('') +
-        '<button class="btn primary" data-resort="' + esc(n.id) + '">Einsortieren</button>' +
-        '<button class="btn ghost danger" data-del="' + esc(n.id) + '" aria-label="Notiz löschen">' + ICON.trash.replace('<svg', '<svg width="18" height="18"') + '</button></div></div>').join('')
-      : '<p class="empty">Leer. Sehr gut.</p>') +
-    '</section>' +
-    '<section class="card"><h2 class="label">Gespräch</h2>' + chatLog(40) +
-      (S.chat.length ? '<div class="row" style="margin-top:10px"><button class="btn ghost" data-act="clearchat">Verlauf leeren</button></div>' : '') + '</section>' +
-    '<section class="card side" aria-label="Schreiben"><h2 class="label">An Jarvis schreiben</h2>' + composer('i') + '</section>' +
+  const ns = slimNotes();
+  return '<div class="listpage"><div><h1 class="page">Notizen</h1></div>' +
+    '<section class="card side" aria-label="Schnell notieren">' + composer('i') + '<p class="sub" style="margin-top:6px">Mit Tag und Uhrzeit („Fr 10 Uhr Zahnarzt“) wird ein Termin, sonst eine Notiz. Planen machst du in Claude.</p></section>' +
+    '<section class="card" aria-labelledby="h-nl"><h2 class="label" id="h-nl">' + (ns.length ? ns.length + (ns.length === 1 ? ' Notiz' : ' Notizen') : 'Notizen') + '</h2>' +
+      (ns.length ? ns.map(noteRowHtml).join('') : '<p class="empty">Nichts notiert.</p>') + '</section>' +
   '</div>';
 }
 
@@ -717,39 +817,30 @@ function pageIdeas() {
   '</div>';
 }
 
-/* ----- Einstellungen ----- */
+/* ----- Einstellungen (schlank seit 11.11.2026): Aussehen, Über dich, Google und Kalender, Fahrzeiten, Wetter, Meldungen, Sicherung ----- */
 function pageSettings() {
   const s = S.settings;
-  const counts = ['task', 'event', 'shopping', 'idea', 'note', 'subject', 'material'].map(t => byType(t).length);
+  const nEv = byType('event').length, nNotes = slimNotes().length;
   return '<div class="listpage"><div><h1 class="page">Einstellungen</h1></div>' +
     designSettings() +
     '<section class="card"><h2 class="label">Hell / Dunkel</h2><div class="seg" role="group" aria-label="Modus">' + [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([v, l]) => '<button data-mode="' + v + '" aria-pressed="' + ((s.mode || 'auto') === v) + '">' + l + '</button>').join('') + '</div><p class="sub" style="margin-top:8px">„Automatisch“ folgt der Einstellung deines Geräts.</p></section>' +
-    tileSettings() +
-    menuSettings() +
-    '<section class="card"><div class="row" style="justify-content:space-between"><h2 class="label" style="margin:0">Einrichtung</h2><button class="btn" data-act="onbstart">Einrichtung durchgehen</button></div></section>' +
-    '<section class="card"><h2 class="label">Anrede</h2><form class="addrow" data-form="name"><label class="sr" for="name-in">Wie soll Jarvis dich nennen?</label><input id="name-in" value="' + esc(s.name || '') + '" placeholder="Wie soll Jarvis dich nennen?" autocomplete="off"><button class="btn primary" type="submit">Speichern</button></form></section>' +
-    (window.JarvisGoogle && typeof JarvisGoogle.settingsHTML === 'function' ? JarvisGoogle.settingsHTML() : '') +   // Google verbinden (Klicks darin erledigt js/google.js)
-    '<section class="card"><h2 class="label">Kalender</h2><label class="toggle"><input type="checkbox" data-setting="calSync"' + (s.calSync !== false ? ' checked' : '') + '> Termine, Vorlesungen, Arbeit und Urlaub automatisch in Google Kalender eintragen</label>' +
-      '<p class="sub">' + (mcp ? gcalStatusText() : 'Die Kalender-Anbindung ist hier nicht verfügbar.') + ' Damit die Einträge in Apple Kalender erscheinen: iPhone-Einstellungen → Apps → Kalender → Accounts → Google-Konto mit „Kalender“ hinzufügen.</p>' +
-      (mcp ? '<div class="row" style="margin-top:10px"><button class="btn" data-act="gcalrefresh">Kalender neu laden</button>' + (S.items.some(i => i.calErr) ? '<button class="btn warn" data-act="calretry">Fehlgeschlagene erneut eintragen</button>' : '') + '</div>' : '') + '</section>' +
-    '<section class="card"><h2 class="label">Sprechen</h2><label class="toggle"><input type="checkbox" data-setting="speak"' + (s.speak ? ' checked' : '') + '> Antworten immer vorlesen</label><label class="toggle"><input type="checkbox" data-setting="voiceAutoSend"' + (s.voiceAutoSend !== false ? ' checked' : '') + '> Nach dem Sprechen automatisch senden</label><p class="sub">Tippe auf das Mikrofon neben dem Eingabefeld und sprich. Wenn du sprichst, antwortet Jarvis auch laut.</p></section>' +
-    '<section class="card"><h2 class="label">„Hey Siri, Jarvis“</h2><label class="toggle"><input type="checkbox" data-setting="siri"' + (s.siri !== false ? ' checked' : '') + '> Siri-Notizen aus Gmail übernehmen</label><label class="toggle"><input type="checkbox" data-setting="siriTrash"' + (s.siriTrash !== false ? ' checked' : '') + '> Die Mail danach in den Papierkorb legen</label>' +
-      '<p class="sub">Ein Kurzbefehl schickt deine gesprochene Notiz als Mail mit dem Betreff „' + esc(s.siriWord || 'Jarvis') + '“ an deine Gmail-Adresse. Jarvis holt sie ab, sobald du ihn öffnest (und alle 10 Minuten, solange er offen ist), und legt sie in den Eingangskorb.</p>' +
-      '<div class="row" style="margin-top:8px"><button class="btn" data-act="siricheck"' + (mcp ? '' : ' disabled') + '>Jetzt abholen</button></div></section>' +
-    '<section class="card"><h2 class="label">Wetter</h2><form class="addrow" data-form="wxsearch"><label class="sr" for="wx-in">Ort für das Wetter</label><input id="wx-in" name="q" value="' + esc(s.wxName || '') + '" placeholder="Ort, z. B. Haltern am See" autocomplete="off"><button class="btn primary" type="submit"' + (mcp ? '' : ' disabled') + '>Suchen</button></form><p class="sub" style="margin-top:8px">' + (S.weather ? 'Aktuell: ' + esc(s.wxName) + '.' : 'Wetter wird über Open-Meteo geladen.') + '</p></section>' +
-    '<section class="card"><h2 class="label">Meldungen</h2><p class="sub">Morgenbericht, Abendrückblick und Wochenplanung aufs Handy: an- und ausschalten, Uhrzeiten einstellen.</p><div class="row" style="margin-top:10px"><a class="btn primary" href="#berichte" data-go="berichte">Meldungen einstellen</a></div></section>' +
-    '<section class="card"><h2 class="label">Arbeit</h2><form data-form="worksettings" style="display:flex;flex-direction:column;gap:10px">' +
-      '<fieldset style="border:0;padding:0;margin:0"><legend class="sub" style="margin-bottom:6px">Arbeitstage</legend><div class="row">' + [1,2,3,4,5,6].map(n => '<label class="toggle" style="min-height:40px;margin-right:6px"><input type="checkbox" name="wd" value="' + n + '"' + (workDays().includes(n) ? ' checked' : '') + '> ' + WDS[n % 7] + '</label>').join('') + '</div></fieldset>' +
-      '<div class="formgrid"><label class="field"><span>Stunden pro Woche</span><input name="workHours" type="number" min="0" max="60" step="0.5" value="' + esc(s.workHours ?? 20) + '"></label>' +
-      '<label class="field"><span>Urlaubsanspruch pro Jahr (Tage)</span><input name="vacationDays" type="number" min="0" max="60" step="0.5" value="' + esc(s.vacationDays ?? '') + '" placeholder="z. B. 18"></label>' +
-      '<label class="field"><span>Übertrag aus dem Vorjahr</span><input name="vacationCarry" type="number" min="0" max="60" step="0.5" value="' + esc(s.vacationCarry || '') + '" placeholder="0"></label></div>' +
-      '<label class="field"><span>Deine Regeln für die Arbeitsplanung</span><textarea name="rules" rows="5">' + esc(s.rules || DEFAULT_RULES) + '</textarea></label>' +
+    '<section class="card"><h2 class="label">Über dich</h2><form data-form="slimme" style="display:flex;flex-direction:column;gap:10px"><div class="formgrid">' +
+      '<label class="field"><span>Wie soll Jarvis dich nennen?</span><input name="name" value="' + esc(s.name || '') + '" autocomplete="off" maxlength="40"></label>' +
+      '<label class="field"><span>Arbeit pro Woche (Std.)</span><input name="workHours" type="number" min="0" max="60" step="0.5" inputmode="decimal" value="' + esc(s.workHours ?? 20) + '"></label></div>' +
+      '<p class="sub">Die Stunden braucht Jarvis für die Zeile „Arbeit x von 20 Std. geplant“ in der Woche.</p>' +
+      '<label class="field"><span>Link zu deinem Planungs-Projekt in Claude</span><input name="planUrl" type="url" inputmode="url" value="' + esc(s.planUrl || '') + '" placeholder="https://claude.ai/project/…" autocomplete="off"></label>' +
+      '<p class="sub">Dahin führt der Knopf „In Claude umplanen“. In Claude das Projekt öffnen, den Link oben aus dem Browser kopieren und hier einfügen. Leer lassen: Der Knopf öffnet deine Projekt-Übersicht.</p>' +
       '<div class="row"><button class="btn primary" type="submit">Speichern</button></div></form></section>' +
-    catSettingsCard() + loadCard() +
-    planSettingsCard() + dpTplCard() +
-    '<section class="card"><h2 class="label">Sicherung</h2><p class="sub">' + counts[0] + ' Aufgaben · ' + counts[1] + ' Termine · ' + counts[2] + ' Einkauf · ' + counts[3] + ' Ideen · ' + counts[4] + ' Notizen · ' + counts[5] + ' Fächer · ' + counts[6] + ' Materialien</p>' +
-      '<div class="row" style="margin-top:10px"><button class="btn primary" data-act="backup">Sicherung herunterladen</button><button class="btn" data-act="icsexport">Kalender als Datei (.ics)</button><label class="btn" for="restore-in">Sicherung einspielen</label><input id="restore-in" type="file" accept="application/json,.json" class="sr" data-act-change="restore"></div>' +
-      '<p class="sub" style="margin-top:8px">' + (S.online ? 'Deine Daten liegen in deinem Firebase und sind auf all deinen Geräten gleich.' : 'Gerade nur auf diesem Gerät gespeichert.') + '' + '</p></section>' +
+    (window.JarvisGoogle && typeof JarvisGoogle.settingsHTML === 'function' ? JarvisGoogle.settingsHTML() : '') +   // Google verbinden (Klicks darin erledigt js/google.js)
+    '<section class="card"><h2 class="label">Kalender</h2><label class="toggle"><input type="checkbox" data-setting="calSync"' + (s.calSync !== false ? ' checked' : '') + '> Termine, die du in Jarvis anlegst, auch in Google Kalender eintragen</label>' +
+      '<p class="sub">' + (mcp ? gcalStatusText() : 'Die Kalender-Anbindung ist hier nicht verfügbar.') + '</p>' +
+      (mcp ? '<div class="row" style="margin-top:10px"><button class="btn" data-act="gcalrefresh">Kalender neu laden</button>' + (S.items.some(i => i.calErr) ? '<button class="btn warn" data-act="calretry">Fehlgeschlagene erneut eintragen</button>' : '') + '</div>' : '') + '</section>' +
+    travelSettingsCard() +
+    '<section class="card"><h2 class="label">Wetter</h2><form class="addrow" data-form="wxsearch"><label class="sr" for="wx-in">Ort für das Wetter</label><input id="wx-in" name="q" value="' + esc(s.wxName || '') + '" placeholder="Ort, z. B. Haltern am See" autocomplete="off"><button class="btn primary" type="submit"' + (mcp ? '' : ' disabled') + '>Suchen</button></form><p class="sub" style="margin-top:8px">' + (S.weather ? 'Aktuell: ' + esc(s.wxName) + '.' : 'Wetter wird über Open-Meteo geladen.') + '</p></section>' +
+    '<section class="card"><h2 class="label">Meldungen</h2><p class="sub">Morgenbericht, Losfahren, Unwetter und Wochenvorschau aufs Handy: an- und ausschalten, Uhrzeiten einstellen.</p><div class="row" style="margin-top:10px"><a class="btn primary" href="#berichte" data-go="berichte">Meldungen einstellen</a></div></section>' +
+    '<section class="card"><h2 class="label">Sicherung</h2><p class="sub">' + nEv + (nEv === 1 ? ' Termin' : ' Termine') + ' aus Jarvis · ' + nNotes + (nNotes === 1 ? ' Notiz' : ' Notizen') + '. Alles andere aus der früheren Fassung ist auch noch gespeichert und steckt in der Sicherung.</p>' +
+      '<div class="row" style="margin-top:10px"><button class="btn primary" data-act="backup">Sicherung herunterladen</button><label class="btn" for="restore-in">Sicherung einspielen</label><input id="restore-in" type="file" accept="application/json,.json" class="sr" data-act-change="restore"></div>' +
+      '<p class="sub" style="margin-top:8px">' + (S.online ? 'Deine Daten liegen in deinem Firebase und sind auf all deinen Geräten gleich.' : 'Gerade nur auf diesem Gerät gespeichert.') + '</p></section>' +
   '</div>';
 }
 
@@ -757,7 +848,7 @@ function pageSettings() {
 function itemFields(it, i) {
   const k = 'pv' + i;
   const sel = (name, opts, val) => '<select id="' + k + name + '" data-pv="' + i + '" data-f="' + name + '">' + opts.map(([v, l]) => '<option value="' + v + '"' + (val === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>';
-  const typeOpts = ['class','work','off','subject','teamnote','memory','habit','birthday','contract','packlist','time','habitlog','waiting','project','expense'].includes(it.type) ? [[it.type, TYPES[it.type]]] : Object.entries(TYPES).filter(([v]) => ['task','event','shopping','idea','memory'].includes(v));
+  const typeOpts = ['class','work','off','subject','teamnote','memory','habit','birthday','contract','packlist','time','habitlog','waiting','project','expense'].includes(it.type) ? [[it.type, TYPES[it.type]]] : Object.entries(TYPES).filter(([v]) => v === 'event');   // schlanke App: aus „Schnell notieren“ werden nur noch Termine
   const areaOpts = [['', '—'], ...Object.entries(AREAS)];
   let html = '<div class="pv"><div class="head"><label class="field" style="flex:1"><span>Art</span>' + sel('type', typeOpts, it.type) + '</label>' +
     '<button type="button" class="iconbtn" data-pvdel="' + i + '" aria-label="Entfernen">' + ICON.x + '</button></div>' +

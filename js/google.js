@@ -429,7 +429,7 @@
   const escH = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function settingsHTML() {
     const st = status();
-    return '<section class="card" id="g-card"><h2 class="label">Google (Kalender und Gmail)</h2>' +
+    return '<section class="card" id="g-card"><h2 class="label">Google Kalender</h2>' +
       (st.connected
         ? '<p class="sub">Verbunden' + (st.email ? ' mit ' + escH(st.email) : '') + '. Das gilt auf all deinen Geräten.</p><div class="row actions"><button type="button" class="btn ghost" data-gact="connect">Neu verbinden</button><button type="button" class="btn ghost" data-gact="setup">Zugangsdaten</button><button type="button" class="btn ghost danger" data-gact="disconnect">Trennen</button></div>'
         : '<p class="sub">' + (st.configured ? 'Noch nicht verbunden. Einmal verbinden reicht für alle Geräte, am besten am Mac.' : 'Zuerst die zwei Angaben aus Google eintragen (siehe Anleitung), dann verbinden.') + '</p><div class="row actions">' + (st.configured ? '<button type="button" class="btn primary" data-gact="connect">Mit Google verbinden</button>' : '') + '<button type="button" class="btn ' + (st.configured ? 'ghost' : 'primary') + '" data-gact="setup">' + (st.configured ? 'Zugangsdaten' : 'Einrichten') + '</button></div>') +

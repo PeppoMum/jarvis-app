@@ -159,19 +159,23 @@ function calBadge(b) {
 function blockBtn(b) {
   return '<button class="blk' + (b.ro && !canMove(b) ? ' ro' : '') + (isTransit(b) ? ' trip' : '') + '"' + blkAttr(b) + '><span class="bt">' + esc(b.start || 'ganzt.') + '</span><span class="bd ' + (b.area ? 'a-' + esc(b.area) : '') + '"></span><span class="bx">' + esc(b.title) + (b.end ? ' <span class="src">bis ' + esc(b.end) + '</span>' : '') + (travelFor(b) ? ' <span class="src">· Fahrt eingeplant</span>' : '') + (b.ro ? ' <span class="src">· ' + esc(calLabel(b)) + '</span>' : '') + (wxText(b) ? ' <span class="src">· ' + esc(wxText(b)) + '</span>' : '') + (b.cal === 'err' ? ' <span class="calerr">!</span>' : '') + '</span></button>';
 }
+// Eine Zeile statt Zahlen-Kacheln: Ampel und wie viel Arbeit schon im Kalender steht
+function weekLine(ws) {
+  const goal = Number(S.settings.workHours ?? 20);
+  return '<span class="amp ' + ws.lvl + '"><i></i>' + esc(ws.label) + '</span> · ' + fmtH(ws.total) + ' Std. verplant' + (goal ? ' · Arbeit ' + fmtH(ws.work) + ' von ' + fmtH(goal) + ' Std. geplant' : '');
+}
 function pageWeek() {
   if (S.calView === 'monat') return pageMonth();
   const mon = curWeek(), ws = weekStats(mon), t = todayISO();
   const days = weekDays(mon).map(d => {
-    const bl = blocksOn(d), tasks = openTasks().filter(x => x.date === d);
+    const bl = blocksOn(d);
     const dayH = dayHours(bl);
     return '<section class="day' + (d === t ? ' today' : '') + (offOn(d) || holidayOn(d) ? ' offday' : '') + '" aria-label="' + esc(fmtLong(d)) + '"><h3><span>' + WDS[dObj(d).getDay()] + ' ' + dObj(d).getDate() + '.</span><small>' + (dayH ? fmtH(dayH) + ' Std.' : '') + '</small></h3>' + (wxDay(d) ? '<span class="wx' + (wxDay(d).rain >= 50 ? ' wet' : '') + '">' + wxDay(d).hi + '° · ' + esc(wxDay(d).phrase) + (wxDay(d).rain >= 30 ? ' · ' + wxDay(d).rain + ' %' : '') + '</span>' : '') +
       (bl.length ? bl.map(blockBtn).join('') : '<span class="daytask">frei</span>') +
-      tasks.map(x => '<span class="daytask">☐ ' + esc(x.title) + '</span>').join('') + bdaysOn(d).map(x => '<span class="daytask">🎂 ' + esc(x.name) + (x.age ? ' (' + x.age + ')' : '') + '</span>').join('') + '</section>';
+      bdaysOn(d).map(x => '<span class="daytask">🎂 ' + esc(x.name) + (x.age ? ' (' + x.age + ')' : '') + '</span>').join('') + '</section>';
   }).join('');
-  return '<div class="pagehead"><div><h1 class="page">Woche</h1><p class="sub"><span class="amp ' + ws.lvl + '"><i></i>' + esc(ws.label) + '</span> · ' + fmtH(ws.total) + ' Std. verplant' + (S.gcalState === 'loading' ? ' · Kalender lädt …' : '') + '</p></div>' + weekNav() + '</div>' +
-    '<div class="row" style="margin-bottom:16px;justify-content:space-between"><div class="stats wcats">' + ws.cats.map(c => '<div class="stat"' + (LOAD_CATS.includes(c.id) ? '' : ' title="Zählt nicht zu den verplanten Stunden"') + '><small><i class="tdot" style="background:' + catColor(c.id) + '"></i> ' + esc(c.name) + (LOAD_CATS.includes(c.id) ? '' : ' (zählt nicht)') + '</small><b>' + fmtH(c.h) + (c.goal ? ' / ' + fmtH(c.goal) : '') + ' Std.</b></div>').join('') + (ws.other >= 0.05 ? '<div class="stat" title="Zählt nicht zu den verplanten Stunden"><small><i class="tdot" style="background:var(--mu)"></i> Sonstiges (zählt nicht)</small><b>' + fmtH(ws.other) + ' Std.</b></div>' : '') + (ws.travel >= 0.05 ? '<div class="stat" title="Fahrten zählen nicht zu den verplanten Stunden"><small><i class="tdot" style="background:transparent;border:1px dashed var(--mu)"></i> Fahrt (zählt nicht)</small><b>' + fmtH(ws.travel) + ' Std.</b></div>' : '') + '<div class="stat"><small>Längster Tag</small><b>' + fmtH(ws.maxDay) + ' Std.</b></div></div>' +
-    '<div class="row">' + viewSeg() + '<button class="btn" data-new="event">+ Termin</button><button class="btn" data-jt="pplan">Zeit einplanen</button><button class="btn primary" data-act="plan">' + (dow(todayISO()) >= 5 ? 'Nächste Woche planen' : 'Woche planen') + '</button></div></div>' +
+  return '<div class="pagehead"><div><h1 class="page">Woche</h1><p class="sub">' + weekLine(ws) + (S.gcalState === 'loading' ? ' · Kalender lädt …' : '') + '</p></div>' + weekNav() + '</div>' +
+    '<div class="row" style="margin-bottom:16px">' + viewSeg() + '<button class="btn" data-new="event">+ Termin</button>' + umplanenBtn('btn') + '</div>' +
     '<div class="week">' + days + '</div>';
 }
 const workDays = () => (Array.isArray(S.settings.workDays) && S.settings.workDays.length ? S.settings.workDays : [3, 4, 5]).map(Number);
@@ -246,7 +250,7 @@ const SUB_TABS = [
   [['essen', 'Essensplan'], ['haushalt', 'Haushalt & Listen']],
   [['ausgaben', 'Ausgaben'], ['vertraege', 'Verträge']],
   [['zeiten', 'Zeiten'], ['gewohnheiten', 'Gewohnheiten'], ['rueckblick', 'Rückblick']],
-  [['einstellungen', 'Einstellungen'], ['berichte', 'Meldungen'], ['hinweise', 'Hinweise'], ['gedaechtnis', 'Gedächtnis'], ['protokoll', 'Protokoll'], ['papierkorb', 'Papierkorb']]
+  [['einstellungen', 'Einstellungen'], ['berichte', 'Meldungen'], ['papierkorb', 'Papierkorb']]
 ];
 const MENU_ITEMS = MENU_GROUPS.flatMap(([, list]) => list);
 const tabGroupOf = r => SUB_TABS.find(g => g.some(([id]) => id === r));

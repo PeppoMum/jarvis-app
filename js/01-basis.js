@@ -206,13 +206,14 @@ async function boot() {
     db.doc('meta/siri').onSnapshot(snap => { S.siriDone = snap.exists ? (snap.data().done || []) : []; S.siriFix1 = snap.exists && !!snap.data().fix1; }, onDbError);
     db.doc('meta/team').onSnapshot(snap => { S.team = snap.exists ? snap.data() : null; render(); }, onDbError);
     db.doc('meta/finance').onSnapshot(snap => { S.finance = snap.exists ? snap.data() : null; render(); }, onDbError);
+    db.doc('meta/planseen').onSnapshot(snap => { S.planseen = snap.exists ? snap.data() : null; S.planseenLoaded = true; render(); }, onDbError);
     db.doc('meta/mail').onSnapshot(snap => { S.mail = snap.exists ? snap.data() : null; render(); }, onDbError);
     db.doc('meta/brief').onSnapshot(snap => { S.brief = snap.exists ? snap.data() : null; briefLoaded = true; render(); setTimeout(maybeAutoBrief, 4000); }, onDbError);
     ['briefEvening', 'briefWeekly', 'briefCustom'].forEach(k => db.doc('meta/' + k).onSnapshot(snap => { S[k] = snap.exists ? snap.data() : null; render(); }, onDbError));
     if (mcp) { fetchGcal(); fetchWeather(); setTimeout(checkSiriInbox, 2500); setInterval(() => { if (!document.hidden) { fetchGcal(); fetchWeather(); checkSiriInbox(); } }, 10 * 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSiriInbox(); }); }
   } else {
     const o = local.read();
-    S.items = Object.values(o.items || {}); S.timer = o.timer || null; S.focus = o.focus || null; S.meals = o.meals || null; S.trash = Object.values(o.trash || {}); S.team = o.team || null; S.finance = o.finance || null; if (o.settings) S.settings = { ...S.settings, ...o.settings }; S.setSeen = true; S.setExists = !!o.settings; S.chat = o.chat || []; S.log = Object.values(o.log || {}); S.loaded = true;
+    S.items = Object.values(o.items || {}); S.timer = o.timer || null; S.focus = o.focus || null; S.meals = o.meals || null; S.trash = Object.values(o.trash || {}); S.team = o.team || null; S.finance = o.finance || null; if (o.settings) S.settings = { ...S.settings, ...o.settings }; S.setSeen = true; S.setExists = !!o.settings; S.chat = o.chat || []; S.log = Object.values(o.log || {}); S.planseen = o.planseen || null; S.planseenLoaded = true; S.loaded = true;
     applyLook(); render();
   }
 }
