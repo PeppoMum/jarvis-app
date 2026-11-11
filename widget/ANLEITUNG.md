@@ -3,7 +3,7 @@
 Dauert etwa 5 Minuten. Du brauchst die kostenlose App **Scriptable** aus dem App Store.
 
 ## 1. Skript holen
-1. Jarvis-App öffnen: **Mehr › Einstellungen › Meldungen**.
+1. Jarvis-App öffnen: **Zahnrad (Einstellungen) › Meldungen**.
 2. Unten bei „Widget und Kurzbefehle“ auf **Widget einrichten** tippen. Es erscheint ein Einrichtungs-Code.
 3. Auf **Widget-Skript kopieren** tippen.
 
@@ -15,7 +15,7 @@ Dauert etwa 5 Minuten. Du brauchst die kostenlose App **Scriptable** aus dem App
 ## 3. Einmal einrichten
 1. Zurück in die Jarvis-App, beim Einrichtungs-Code auf **Kopieren** tippen.
 2. In Scriptable auf **Jarvis** tippen. Es fragt nach dem Code: einfügen, **Speichern**.
-3. Danach zeigt Scriptable das Menü (Arbeit starten usw.) und eine Vorschau des Widgets.
+3. Danach zeigt Scriptable das Menü (Notiz, Claude öffnen) und eine Vorschau des Widgets.
 
 ## 4. Widget auf den Home-Bildschirm
 1. Auf dem Home-Bildschirm eine freie Stelle lange drücken, oben links auf **Bearbeiten › Widget hinzufügen**.
@@ -23,7 +23,7 @@ Dauert etwa 5 Minuten. Du brauchst die kostenlose App **Scriptable** aus dem App
 3. Das neue Widget lange drücken, **Widget bearbeiten**:
    - Script: **Jarvis**
    - When Interacting: **Run Script**
-4. Fertig. Tippst du aufs Widget, kommt das Menü mit Arbeit starten, Pause, Feierabend, Notiz und Claude öffnen.
+4. Fertig. Tippst du aufs Widget, kommt das Menü mit Notiz und Claude öffnen.
 
 ## Gut zu wissen
 - Neue Fassung des Skripts: in der Jarvis-App wieder auf **Widget-Skript kopieren**, in Scriptable das Skript **Jarvis** öffnen, alles markieren und durch das Neue ersetzen. Der Einrichtungs-Code bleibt gespeichert.

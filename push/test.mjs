@@ -73,7 +73,15 @@ let r = await lauf("2026-11-03T06:50:00");
 assert.ok(r.keys.includes("morgen:2026-11-03"), "Morgenbericht fehlt: " + r.keys);
 const mb = r.dran.find((d) => d.key.startsWith("morgen")).msg;
 console.log(mb.t + "\n" + mb.b + "\n");
-assert.match(mb.b, /09:30 Seminar Deutsch/); assert.match(mb.b, /Losfahren: spätestens 07:50/); assert.match(mb.b, /🎂 Max \(12\)/); assert.match(mb.b, /Klausur Mathe/);
+assert.match(mb.b, /09:30 Seminar Deutsch/); assert.match(mb.b, /Losfahren: spätestens 07:50/); assert.match(mb.b, /🎂 Max \(12\)/);
+assert.match(mb.b, /Wetter: 12° \/ 6°/);
+/* längste freie Zeit: Seminar ab 8:00 belegt (90 Min. Fahrt) bis 11:00, Training ab 17:20 (10 Min. Fahrt) → 11 bis 17:20 */
+assert.match(mb.b, /^Frei von 11 bis 17:20 Uhr\.$/m);
+/* Arbeit: Mittwoch 8–12 Uhr = 4 Std. von 20 → 16 fehlen */
+assert.match(mb.b, /^Diese Woche fehlen noch 16 Std\. Arbeit\.$/m);
+/* Bereiche, die es nicht mehr gibt, stehen nicht mehr drin */
+for (const weg of [/Top 3/, /Aufgabe/, /Heute dran/, /[Üü]berfällig/, /Klausur/, /Lernkarte/, /Vertrag/, /Gewohnheit/, /Bewerbung/, /Wäsche/, /Mail/])
+  assert.doesNotMatch(mb.b, weg, "Morgenbericht enthält noch " + weg);
 /* schon gesendet → nicht nochmal */
 r = await lauf("2026-11-03T07:05:00", { writes: [], versand: { keys: ["morgen:2026-11-03"] } });
 assert.ok(!r.keys.includes("morgen:2026-11-03"));
@@ -84,21 +92,104 @@ assert.ok(!r.keys.some((k) => k.startsWith("morgen")));
 r = await lauf("2026-11-03T07:37:00");
 assert.ok(r.keys.some((k) => k.startsWith("los:2026-11-03")), "Losfahren fehlt: " + r.keys);
 console.log(r.dran.find((d) => d.key.startsWith("los")).msg, "\n");
-/* Aufgaben-Erinnerung 14:00 */
-r = await lauf("2026-11-03T14:03:00"); assert.ok(r.keys.includes("auf:t4:2026-11-03T14:00"));
-/* Abendrückblick 20:45 */
+/* Aufgaben-Erinnerungen gibt es nicht mehr (t4 hätte um 14:00 erinnert) */
+r = await lauf("2026-11-03T14:03:00"); assert.ok(!r.keys.some((k) => k.startsWith("auf")), "Aufgaben-Erinnerung kam noch: " + r.keys);
+/* Abends 20:45: nur noch „Das steht morgen an“ */
 r = await lauf("2026-11-03T20:47:00");
 const ab = r.dran.find((d) => d.key.startsWith("abend")); assert.ok(ab); console.log(ab.msg.t + "\n" + ab.msg.b + "\n");
-assert.match(ab.msg.b, /Erfasst: 5 Std 30 Min/); assert.match(ab.msg.b, /Morgen: 08:00 Arbeit · Büro/);
-/* Gewohnheit 21:30 liegt in der Ruhezeit (21–7) → keine Meldung */
-r = await lauf("2026-11-03T21:35:00"); assert.ok(!r.keys.some((k) => k.startsWith("hab")));
+assert.equal(ab.msg.t, "Das steht morgen an");
+assert.match(ab.msg.b, /Termine: 08:00 Arbeit · Büro/); assert.match(ab.msg.b, /Losfahren: spätestens 06:20 zu „Arbeit · Büro“/); assert.match(ab.msg.b, /Wetter: 10° \/ 4°/);
+for (const weg of [/Erledigt/, /Erfasst/, /Gewohnheit/, /fällig/, /Aufgabe/]) assert.doesNotMatch(ab.msg.b, weg, "Abendtext enthält noch " + weg);
+/* Gewohnheiten-Erinnerungen gibt es nicht mehr, auch nicht außerhalb der Ruhezeit */
+items.find((x) => x.id === "h1").remind = "19:00";
+r = await lauf("2026-11-03T19:02:00"); assert.ok(!r.keys.some((k) => k.startsWith("hab")), "Gewohnheits-Erinnerung kam noch");
 /* Samstag: Morgenbericht erst 9:00 */
 r = await lauf("2026-11-07T06:50:00"); assert.ok(!r.keys.some((k) => k.startsWith("morgen")));
 r = await lauf("2026-11-07T09:02:00"); assert.ok(r.keys.includes("morgen:2026-11-07"));
-/* Sonntag 18:45: Wochenplanung */
+/* Sonntag 18:45: Wochenvorschau ohne Fristen, Klausuren, Aufgaben */
 r = await lauf("2026-11-08T18:50:00");
 const wp = r.dran.find((d) => d.key.startsWith("woche")); assert.ok(wp); console.log(wp.msg.t + "\n" + wp.msg.b + "\n");
-assert.match(wp.msg.b, /Hausarbeit Gliederung \(Do\)/); assert.match(wp.msg.b, /Sehr voll: Di 12 Std\./);
+assert.match(wp.msg.b, /Sehr voll: Di 12 Std\./); assert.match(wp.msg.b, /Arbeit geplant: 0 von 20 Std\./);
+for (const weg of [/Fristen/, /Hausarbeit/, /Klausur/, /Aufgabe/, /erledigt/]) assert.doesNotMatch(wp.msg.b, weg, "Wochenvorschau enthält noch " + weg);
+/* Widget: keine Aufgaben mehr, aber das Feld bleibt leer da (ältere Widget-Skripte stürzen sonst ab) */
+r = await lauf("2026-11-03T10:00:00");
+{ const { widgetDaten } = await import("./meldungen.mjs"); const wd = widgetDaten(r.J, null);
+  assert.deepEqual(wd.auf, { heute: 0, ueber: 0, top: [] }); assert.ok(!("gew" in wd)); assert.equal(wd.termine[0].ti, "Seminar Deutsch"); assert.equal(wd.termine[1].ti, "Training U13"); }
+
+/* ---------- Warnung bei Überschneidungen ---------- */
+{
+  const { jarvis } = await import("./jarvis.mjs");
+  const { jetztDran } = await import("./meldungen.mjs");
+  const g = (id, date, start, end, title, extra = {}) => ({ gid: id, date, start, end, title, place: "", calName: "Google", ...extra });
+  const J = (gcal, zeit, its = [], settings = {}) => jarvis({ items: its, settings, gcal, jetzt: new Date(zeit) });
+  const ueb = (j, versand) => jetztDran(j, versand).filter((d) => d.key.startsWith("ueb:"));
+  /* Donnerstag 5.11., 10 Uhr */
+  const zwei = [g("a", "2026-11-05", "14:00", "16:00", "Zahnarzt"), g("b", "2026-11-05", "15:30", "17:00", "Elterngespräch")];
+  let w = ueb(J(zwei, "2026-11-05T10:00:00"));
+  assert.equal(w.length, 1, "Überschneidung heute nicht erkannt");
+  assert.match(w[0].msg.t, /Heute/); assert.match(w[0].msg.b, /„Zahnarzt“ \(14:00–16:00\) und „Elterngespräch“ \(15:30–17:00\)/);
+  console.log(w[0].msg.t + "\n" + w[0].msg.b + "\n");
+  /* nur einmal: gemerkt → keine zweite Meldung */
+  assert.equal(ueb(J(zwei, "2026-11-05T10:05:00"), [w[0].key]).length, 0, "Warnung kam doppelt");
+  /* wird ein Termin verschoben und überschneidet sich immer noch, kommt eine neue Warnung */
+  const verschoben = [zwei[0], g("b", "2026-11-05", "15:00", "17:00", "Elterngespräch")];
+  assert.equal(ueb(J(verschoben, "2026-11-05T10:05:00"), [w[0].key]).length, 1, "verschobene Überschneidung nicht neu gemeldet");
+  /* morgen auch, übermorgen nicht */
+  const morgen = zwei.map((x) => ({ ...x, date: "2026-11-06" }));
+  w = ueb(J(morgen, "2026-11-05T10:00:00")); assert.equal(w.length, 1); assert.match(w[0].msg.t, /Morgen/);
+  assert.equal(ueb(J(zwei.map((x) => ({ ...x, date: "2026-11-07" })), "2026-11-05T10:00:00")).length, 0, "übermorgen darf noch nicht warnen");
+  /* direkt hintereinander (16:00 Ende, 16:00 Beginn) ist keine Überschneidung */
+  assert.equal(ueb(J([g("a", "2026-11-05", "14:00", "16:00", "Zahnarzt"), g("b", "2026-11-05", "16:00", "17:00", "Kaffee")], "2026-11-05T10:00:00")).length, 0);
+  /* ganztägige Termine zählen nicht */
+  assert.equal(ueb(J([g("a", "2026-11-05", null, null, "Urlaub"), zwei[0]], "2026-11-05T10:00:00")).length, 0);
+  /* derselbe Termin in zwei Kalendern zählt nicht */
+  assert.equal(ueb(J([zwei[0], { ...zwei[0], gid: "a2", calName: "U13 Trainer-Cockpit" }], "2026-11-05T10:00:00")).length, 0, "doppelter Termin als Überschneidung gemeldet");
+  /* Fahrt zum eigenen Termin ist keine Überschneidung */
+  const fahrt = [g("f", "2026-11-05", "13:00", "14:15", "Fahrt zum Zahnarzt"), g("z", "2026-11-05", "14:00", "15:00", "Zahnarzt")];
+  assert.equal(ueb(J(fahrt, "2026-11-05T10:00:00")).length, 0, "Fahrt als Überschneidung gemeldet");
+  /* in der Ruhezeit (21–7 Uhr) still, danach kommt sie */
+  assert.equal(ueb(J(morgen, "2026-11-05T22:00:00")).length, 0, "Warnung in der Ruhezeit");
+  assert.equal(ueb(J(zwei, "2026-11-05T07:05:00")).length, 1);
+  /* abschaltbar in den Einstellungen */
+  assert.equal(ueb(J(zwei, "2026-11-05T10:00:00", [], { push: { konflikt: false } })).length, 0, "Schalter wirkt nicht");
+  /* heute schon vorbei → keine Warnung mehr */
+  assert.equal(ueb(J(zwei, "2026-11-05T16:30:00")).length, 0, "Warnung für Vergangenes");
+
+  /* Abfahrt liegt vor dem Ende des Termins davor: Homeoffice bis 12, Seminar an der Uni um 13 (90 Min. Fahrt → los 11:20) */
+  const knapp = [g("h", "2026-11-05", "08:00", "12:00", "Arbeit Homeoffice"), g("s", "2026-11-05", "13:00", "14:30", "Seminar", { place: "Uni Münster" })];
+  w = ueb(J(knapp, "2026-11-05T07:30:00"));
+  assert.equal(w.length, 1, "knappe Abfahrt nicht erkannt"); assert.match(w[0].msg.t, /knapp/);
+  assert.match(w[0].msg.b, /um 11:20 los/); assert.match(w[0].msg.b, /„Arbeit Homeoffice“ \(08:00–12:00\) ist erst um 12:00 zu Ende/);
+  console.log(w[0].msg.t + "\n" + w[0].msg.b + "\n");
+  /* genug Zeit dazwischen → nichts */
+  assert.equal(ueb(J([{ ...knapp[0], end: "11:00" }, knapp[1]], "2026-11-05T07:30:00")).length, 0, "Warnung trotz genug Zeit");
+  /* schon am selben Ort: zwei Vorlesungen hintereinander an der Uni → nichts */
+  assert.equal(ueb(J([g("v1", "2026-11-05", "09:00", "10:30", "Vorlesung Mathe", { place: "Uni Münster" }), g("v2", "2026-11-05", "10:45", "12:15", "Seminar", { place: "Uni Münster" })], "2026-11-05T07:30:00")).length, 0, "Uni-Vorlesungen hintereinander gemeldet");
+  /* eingetragene Fahrt: Arbeit bis 16:30, Fahrt zum Training ab 16:15 → knapp */
+  const mitFahrt = [g("h", "2026-11-05", "13:00", "16:30", "Arbeit Homeoffice"), g("f", "2026-11-05", "16:15", "16:45", "Fahrt zum Training"), g("t", "2026-11-05", "16:45", "18:00", "Training U13", { place: "Stausee" })];
+  w = ueb(J(mitFahrt, "2026-11-05T10:00:00"));
+  assert.equal(w.length, 1, "Fahrt vor Ende der Arbeit nicht erkannt: " + JSON.stringify(w.map((x) => x.msg.b))); assert.match(w[0].msg.b, /um 16:15 los/);
+  /* Fußball-App: Abfahrt aus der Beschreibung (13:25) vor Ende der Arbeit (13:30) */
+  const cockpit = [g("h", "2026-11-07", "09:00", "13:30", "Arbeit Homeoffice"), g("sp", "2026-11-07", "14:00", "16:00", "Spiel U13", { calName: "U13 Trainer-Cockpit", cockpit: true, abf: "13:25", abfMin: 10 })];
+  w = ueb(J(cockpit, "2026-11-07T10:00:00")); assert.equal(w.length, 1); assert.match(w[0].msg.b, /um 13:25 los/);
+  /* Training aus der Fußball-App ohne „Abfahrt:“: keine Losfahr-Warnung */
+  assert.equal(ueb(J([cockpit[0], { ...cockpit[1], title: "Training U13", abf: null, abfMin: null }], "2026-11-07T10:00:00")).length, 0);
+
+  /* Arbeitsstunden: Pause wird wie in der App abgezogen (7–16 Uhr am Stück = 9 Std. − 30 Min.), Uni zählt nicht als Arbeit */
+  const jw = J([g("x", "2026-11-04", "07:00", "16:00", "Arbeit Büro"), g("y", "2026-11-05", "09:00", "11:00", "Vorlesung Mathe", { area: "uni" }), g("y2", "2026-11-03", "09:00", "10:00", "Arbeitsgruppe Didaktik", { area: "uni" }), g("y3", "2026-11-03", "17:00", "18:00", "Arbeitseinsatz Verein", { area: "team" })], "2026-11-05T06:50:00",
+    [{ id: "w9", type: "work", date: "2026-11-06", start: "08:00", end: "10:00", place: "Homeoffice" }], { workHours: 15 });
+  assert.equal(jw.arbeitWoche("2026-11-02"), 10.5);
+  const mb2 = jetztDran(jw, []).find((d) => d.key.startsWith("morgen")).msg.b;
+  assert.match(mb2, /^Diese Woche fehlen noch 4,5 Std\. Arbeit\.$/m);
+  /* Soll erreicht → keine Zeile */
+  assert.doesNotMatch(jetztDran(J([], "2026-11-05T06:50:00", [], { workHours: 0 }), []).find((d) => d.key.startsWith("morgen")).msg.b, /fehlen/);
+  /* freie Zeit unter 1 Std. → keine Zeile */
+  const voll = [g("1", "2026-11-05", "08:00", "11:30", "A"), g("2", "2026-11-05", "12:00", "15:00", "B"), g("3", "2026-11-05", "15:45", "20:00", "C")];
+  assert.doesNotMatch(jetztDran(J(voll, "2026-11-05T06:50:00"), []).find((d) => d.key.startsWith("morgen")).msg.b, /Frei von/);
+  /* ganzer Tag frei */
+  assert.match(jetztDran(J([], "2026-11-05T06:50:00"), []).find((d) => d.key.startsWith("morgen")).msg.b, /^Frei von 8 bis 20 Uhr\.$/m);
+  console.log("Überschneidungen, freie Zeit und Arbeitsstunden: alle Proben bestanden.\n");
+}
 
 /* Geheimnis VAPID_PRIVAT: kleine Tippfehler beim Eintragen werden verziehen, ein falscher Schlüssel stoppt den Rest nicht */
 const e = crypto.createECDH("prime256v1"); e.generateKeys();

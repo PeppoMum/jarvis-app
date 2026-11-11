@@ -2,7 +2,7 @@
 
 Bei GitHub läuft alle 5 Minuten ein kleiner Zeitplan (`.github/workflows/meldungen.yml`). Er startet `push/senden.mjs`. Das Skript
 - meldet sich als **Versand-Helfer** bei Firebase an (eigenes Konto, darf Phils Daten nur lesen und ein paar Felder schreiben),
-- holt Aufgaben, Gewohnheiten usw. aus Firebase, die Termine über den Google-Zugang der App (sonst über die geheime iCal-Adresse), das Wetter von Open-Meteo und amtliche Warnungen über Bright Sky,
+- holt Phils Einträge und Einstellungen aus Firebase, die Termine über den Google-Zugang der App (sonst über die geheime iCal-Adresse), das Wetter von Open-Meteo und amtliche Warnungen über Bright Sky,
 - schickt fällige Meldungen an alle Geräte, auf denen Phil Meldungen eingeschaltet hat,
 - legt die Texte für die Startseite ab (meta/brief, meta/briefEvening, meta/briefWeekly) und frischt die Widget-Daten auf (widget/<schlüssel>).
 
@@ -10,12 +10,12 @@ Keine KI, keine Kosten. GitHub-Zeitpläne starten oft ein paar Minuten später; 
 
 | Meldung | Wann (Standard, in der App änderbar) |
 |---|---|
-| Morgenbericht | Mo–Fr 6:45, Sa/So 9:00 |
-| Abendrückblick | täglich 20:45 |
-| Wochenplanung | Sonntag 18:45 |
+| Morgenbericht (Termine, Losfahren, längste freie Zeit, Wetter, Geburtstage, fehlende Arbeitsstunden der Woche) | Mo–Fr 6:45, Sa/So 9:00 |
+| Abends: Das steht morgen an (Termine, Losfahren, Wetter, Geburtstage) | täglich 20:45 |
+| Wochenvorschau (Stunden und Arbeit der nächsten Woche) | Sonntag 18:45 |
 | Losfahren | 15 Minuten vor der Losfahrzeit (Fahrzeiten aus den Planungs-Einstellungen) |
 | Unwetter | sobald der Wetterdienst warnt (in der Ruhezeit nur starke Warnungen) |
-| Gewohnheiten, Aufgaben | zur eingestellten Erinnerungszeit (nicht in der Ruhezeit) |
+| Überschneidung | sobald sich heute oder morgen zwei Termine überschneiden oder man vor dem Ende eines Termins schon losfahren müsste; jede nur einmal (nicht in der Ruhezeit, dann danach) |
 
 ## Einrichten (einmal)
 1. **Firebase › Authentication › Nutzer hinzufügen**: E-Mail `meldungen@jarvis-app.web.app`, Passwort selbst ausdenken (lang, irgendwo notieren).
@@ -26,9 +26,9 @@ Keine KI, keine Kosten. GitHub-Zeitpläne starten oft ein paar Minuten später; 
    - `JARVIS_UID`: die Nutzer-UID aus Schritt 2
    - nur falls der Google-Zugang nicht klappt: `KALENDER_ICAL` mit der „Privatadresse im iCal-Format“ (Google Kalender › Einstellungen › dein Kalender), eine Adresse pro Zeile
 4. **GitHub › Actions › Meldungen › Run workflow**: einmal von Hand starten. Grüner Haken = alles gut.
-5. In der Jarvis-App (vom Home-Bildschirm aus geöffnet): **Mehr › Einstellungen › Meldungen › Meldungen einschalten**, dann **Probemeldung schicken**.
+5. In der Jarvis-App (vom Home-Bildschirm aus geöffnet): **Zahnrad (Einstellungen) › Meldungen › Meldungen einschalten**, dann **Probemeldung schicken**.
 
 ## Gut zu wissen
 - Das Protokoll bei GitHub ist öffentlich lesbar. Es enthält nur Zahlen (wie viele Termine, was gesendet wurde), keine Titel oder Namen.
 - Wenn das Projekt 60 Tage lang nicht verändert wird, hält GitHub den Zeitplan an und schickt vorher eine Mail. Dann bei **Actions › Meldungen** auf „Enable workflow“ tippen.
-- Ausprobieren ohne Versand (am Mac im Ordner): `node push/test.mjs`.
+- Ausprobieren ohne Versand und ohne Netz: im Ordner `push` einmal `npm install --no-save ical.js@2.1.0`, dann `node push/test.mjs`. Bei einem Fehler endet es mit rotem Kreuz (Code 1).

@@ -74,8 +74,13 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
   const isTeamBlock = (b) => b.area === "team" || /training|spiel|turnier|twingame/i.test(b.title || "");
   const isOutside = (b) => isTeamBlock(b) || !!(b.src && b.src.outside);
   const isTransit = (b) => !!b && b.kind !== "class" && b.kind !== "work" && TRANSIT_RE.test(b.title || "");
+  /* Wie in der App: zur Wochen-Ampel zählen nur Arbeit, Uni und Ehrenamt (Fußball), keine Fahrten und nichts Privates */
+  const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
+  const FUSSBALL_RE = /fußball|fussball|ehrenamt|scouting|sichtung|team-?event|mannschaft|verein|trainer|\bu\d{2}\b/i;
+  const countsForLoad = (b) => !!b && !isTransit(b) && (b.cockpit || isTeamBlock(b) || FUSSBALL_RE.test(b.title || "") || b.kind === "class" || ["uni", "arbeit", "team"].includes(b.area)
+    || isWorkBlock(b) || UNI_HINT.test((b.title || "") + " " + (b.place || "")));
   function dayHours(bl) {
-    const iv = bl.filter((b) => !isTransit(b)).map((b) => [hmToMin(b.start), hmToMin(b.end)]).filter(([a, e]) => a != null && e != null && e > a).sort((x, y) => x[0] - y[0]);
+    const iv = bl.filter(countsForLoad).map((b) => [hmToMin(b.start), hmToMin(b.end)]).filter(([a, e]) => a != null && e != null && e > a).sort((x, y) => x[0] - y[0]);
     let sum = 0, cs = -1, ce = -1;
     iv.forEach(([a, e]) => { if (a > ce) { if (ce > cs) sum += ce - cs; cs = a; ce = e; } else ce = Math.max(ce, e); });
     if (ce > cs) sum += ce - cs;
@@ -91,8 +96,9 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
     let total = 0, work = 0;
     for (let i = 0; i < 7; i++) {
       const d = addDays(mon, i), bl = blocksOn(d), h = dayHours(bl);
-      total += h; work += dayHours(bl.filter((b) => b.kind === "work" || b.area === "arbeit")); days.push({ date: d, h });
+      total += h; days.push({ date: d, h });
     }
+    work = arbeitWoche(mon);
     const lvl = total >= L.weekR ? "r" : total >= L.weekY ? "y" : "g";
     return { total, work, days, lvl, label: { g: "machbar", y: "eng", r: "überplant" }[lvl], limY: L.weekY, limR: L.weekR, dayR: L.dayR };
   }
@@ -170,6 +176,64 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
     });
     return out.slice(0, 3);
   }
+  /* Arbeit einer Woche wie in der App: eigene Arbeitsblöcke und Arbeits-Termine aus dem Kalender, gesetzliche Pause abgezogen,
+     soweit keine Lücke dafür da ist (über 6 Std. 30 Min., über 9 Std. 45 Min.) */
+  const arbeitWorte = () => { const c = timeCats().find((x) => x.id === "arbeit") || {}; return ["arbeit", "homeoffice", "home-office", "büro"].concat((c.words || []).map((w) => String(w).toLowerCase()).filter(Boolean)); };
+  function isWorkBlock(b) {
+    if (!b) return false; if (b.kind === "work") return true;
+    if (!["google", "event"].includes(b.kind) || !b.start || !b.end || isTeamBlock(b) || b.area === "uni" || isTransit(b)) return false;
+    if (b.area === "arbeit") return true;
+    const txt = " " + String(b.title || "").toLowerCase().replace(/[^a-zäöüß0-9-]+/g, " ") + " ";
+    return arbeitWorte().some((w) => txt.includes(" " + w));
+  }
+  function arbeitWoche(mon) {
+    let min = 0;
+    for (let i = 0; i < 7; i++) {
+      const iv = blocksOn(addDays(mon, i)).filter(isWorkBlock).map((b) => [hmToMin(b.start), hmToMin(b.end)]).filter(([a, e]) => a != null && e != null && e > a).sort((x, y) => x[0] - y[0]);
+      let sum = 0, gap = 0, ce = null;
+      iv.forEach(([a, e]) => { if (ce == null || a >= ce) { if (ce != null) gap += a - ce; sum += e - a; ce = e; } else if (e > ce) { sum += e - ce; ce = e; } });
+      min += sum - Math.max(0, (sum > 540 ? 45 : sum > 360 ? 30 : 0) - gap);
+    }
+    return min / 60;
+  }
+
+  /* Längste freie Zeit tagsüber (8 bis 20 Uhr). Belegt sind Termine mit Uhrzeit, Fahrten und die Fahrzeit vor einem Termin. */
+  function freiZeit(d, von = "08:00", bis = "20:00") {
+    const A = hmToMin(von), Z = hmToMin(bis);
+    const iv = blocksOn(d).filter((b) => b.start && b.end).map((b) => {
+      const dep = b.cockpit ? (b.abf ? hmToMin(b.abf) : hmToMin(b.start)) : hmToMin(b.start) - travelFor(b);
+      return [Math.min(hmToMin(b.start), dep), hmToMin(b.end)];
+    }).filter(([a, e]) => e > a).sort((x, y) => x[0] - y[0]);
+    let best = null, frei = A;
+    const pruef = (bis2) => { if (bis2 - frei > (best ? best.min : 0)) best = { von: minToHM(frei), bis: minToHM(bis2), min: bis2 - frei }; };
+    iv.forEach(([a, e]) => { if (a > frei) pruef(Math.min(a, Z)); frei = Math.max(frei, e); });
+    if (Z > frei) pruef(Z);
+    return best;
+  }
+
+  /* Überschneidungen an einem Tag: zwei Termine mit Uhrzeit liegen übereinander, oder man müsste losfahren,
+     bevor der Termin davor zu Ende ist. Fahrten zählen nicht als eigener Termin. Gleiche Termine doppelt (zwei Kalender) zählen nicht. */
+  function konflikte(d) {
+    const bl = blocksOn(d).filter((b) => b.start && b.end && hmToMin(b.end) > hmToMin(b.start)), out = [];
+    const echt = bl.filter((b) => !isTransit(b)), fahrten = bl.filter(isTransit);
+    const gleich = (a, b) => String(a.title).trim().toLowerCase() === String(b.title).trim().toLowerCase() && a.start === b.start && a.end === b.end;
+    for (let i = 0; i < echt.length; i++) for (let j = i + 1; j < echt.length; j++) {
+      const a = echt[i], b = echt[j];
+      if (hmToMin(a.start) < hmToMin(b.end) && hmToMin(b.start) < hmToMin(a.end) && !gleich(a, b)) out.push({ art: "ueber", a, b });
+    }
+    echt.forEach((b) => {
+      const s = hmToMin(b.start), tr = travelFor(b);
+      /* Abfahrt: Fußball-App aus „Abfahrt:“, sonst eine eingetragene Fahrt direkt davor, sonst Fahrzeit + 10 Min. */
+      const fahrt = fahrten.filter((f) => hmToMin(f.end) <= s && hmToMin(f.end) >= s - 30 && hmToMin(f.start) < s).sort((x, y) => hmToMin(x.start) - hmToMin(y.start))[0];
+      const at = b.cockpit ? (b.abf ? hmToMin(b.abf) : null) : fahrt ? hmToMin(fahrt.start) : tr ? s - tr - 10 : null;
+      if (at == null || at >= s) return;
+      echt.filter((p) => p !== b && hmToMin(p.start) < s && hmToMin(p.end) > at && hmToMin(p.end) <= s && !gleich(p, b)
+        && !(tr && !b.cockpit && !fahrt && travelFor(p) === tr))   /* schon am selben Ort (z. B. zwei Vorlesungen an der Uni) */
+        .forEach((p) => out.push({ art: "abfahrt", a: p, b, at: minToHM(at) }));
+    });
+    return out;
+  }
+
   function inQuiet() {
     if (S.quietOn === false) return false;
     const n = hmToMin(nowHM), a = hmToMin(S.quietFrom || "21:00"), z = hmToMin(S.quietTo || "07:00");
@@ -177,5 +241,6 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
   }
 
   return { S, t, nowHM, items, byType, relDay, daysUntil, blocksOn, weekStats, taskBuckets, openTasks, doneOn, dayEntries, catName, activeHabits, habitDue, habitDoneOn,
-    bdaysOn, contractInfo, exams, examWord, examName, dueCards, wxDay, wxAt, departures, isOutside, inQuiet, warnungen, timeCats };
+    bdaysOn, contractInfo, exams, examWord, examName, dueCards, wxDay, wxAt, departures, isOutside, inQuiet, warnungen, timeCats,
+    travelFor, isTransit, isWorkBlock, arbeitWoche, freiZeit, konflikte };
 }
