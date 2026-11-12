@@ -172,8 +172,11 @@ function naechstKarte(s, C, p, gr) {
   txt(k, p.nx.ti, F.fett(gr), C.tx);
   txt(k, p.nx.s + (p.nx.e ? " bis " + p.nx.e : "") + (p.nx.o ? " · " + p.nx.o : ""), F.normal(gr - 3), C.mu);
 }
+// Unten im Widget: wie viele Stunden diese Woche noch verplant sind (ab jetzt, nur Arbeit, Uni, Ehrenamt). Ältere Daten ohne „rest“: bisherige Zeile.
+const wocheText = (d) => d.woche.rest != null ? "Noch " + String(d.woche.rest).replace(".", ",") + " Std. verplant" : "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim;
+const wocheFarbe = (C, d) => d.woche.rest != null || d.woche.lvl === "g" ? C.mu : C.red;
 function zahlen(s, C, d, kurz) {
-  txt(s, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(12), d.woche.lvl === "g" ? C.mu : C.red);
+  txt(s, wocheText(d), F.halb(12), wocheFarbe(C, d));
 }
 /* ---------- Plakat (12.11.2026, wie im Design-Board „4b Plakat rund“): riesige Uhrzeit, rote Zeile, dicke Schrift, keine Kästen ---------- */
 // Rote Zeile über dem Termin: JETZT / IN 60 MIN / MORGEN
@@ -197,7 +200,7 @@ function pListe(s, C, t, gr) {
   z.addSpacer(4); txt(z, t.ti, t.f ? F.normal(gr - 1) : F.halb(gr), t.f ? C.mu : C.tx); z.addSpacer();
 }
 function pLos(s, C, d) { if (!d.los) return; txt(s, "Losfahren " + d.los.at, F.schwer(12), C.ac); }
-function pWoche(s, C, d) { txt(s, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(11.5), d.woche.lvl === "g" ? C.mu : C.red); }
+function pWoche(s, C, d) { txt(s, wocheText(d), F.halb(11.5), wocheFarbe(C, d)); }
 function plakat(w, C, d, p, fam) {
   if (fam === "small") {
     w.setPadding(15, 15, 15, 15);
@@ -292,7 +295,7 @@ function bauen(d, fam) {
     w.addSpacer();
     const lin = w.addStack(); lin.size = new Size(0, 1); lin.backgroundColor = C.ln; lin.addSpacer(); w.addSpacer(9);
     const f = w.addStack(); f.layoutHorizontally(); f.centerAlignContent();
-    txt(f, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(12), d.woche.lvl === "g" ? C.mu : C.red); f.addSpacer();
+    txt(f, wocheText(d), F.halb(12), wocheFarbe(C, d)); f.addSpacer();
     const st = new Date(d.at); txt(f, "Stand " + String(st.getHours()).padStart(2, "0") + ":" + String(st.getMinutes()).padStart(2, "0"), F.halb(10.5), C.mu);
     return w;
   }

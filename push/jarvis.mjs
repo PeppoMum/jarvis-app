@@ -75,7 +75,7 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
   const isOutside = (b) => isTeamBlock(b) || !!(b.src && b.src.outside);
   const isTransit = (b) => !!b && b.kind !== "class" && b.kind !== "work" && TRANSIT_RE.test(b.title || "");
   /* Wie in der App: zur Wochen-Ampel zählen nur Arbeit, Uni und Ehrenamt (Fußball), keine Fahrten und nichts Privates */
-  const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
+  const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|\blern|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
   const FUSSBALL_RE = /fußball|fussball|ehrenamt|scouting|sichtung|team-?event|mannschaft|verein|trainer|\bu\d{2}\b/i;
   const countsForLoad = (b) => !!b && !isTransit(b) && (b.cockpit || isTeamBlock(b) || FUSSBALL_RE.test(b.title || "") || b.kind === "class" || ["uni", "arbeit", "team"].includes(b.area)
     || isWorkBlock(b) || UNI_HINT.test((b.title || "") + " " + (b.place || "")));
@@ -85,6 +85,18 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
     iv.forEach(([a, e]) => { if (a > ce) { if (ce > cs) sum += ce - cs; cs = a; ce = e; } else ce = Math.max(ce, e); });
     if (ce > cs) sum += ce - cs;
     return sum / 60;
+  }
+  /* Noch offene Stunden dieser Woche (Widget, Phil 12.11.2026): nur was ab jetzt bis Sonntag noch kommt, gezählt wie die Ampel
+     (Arbeit, Uni, Ehrenamt; keine Fahrten, nichts Sonstiges). Ein Termin, der gerade läuft, zählt nur mit dem Rest. */
+  function weekRest() {
+    const n = hmToMin(nowHM), sun = addDays(mondayOf(t), 6);
+    let sum = 0;
+    for (let d = t; d <= sun; d = addDays(d, 1)) {
+      let bl = blocksOn(d);
+      if (d === t) bl = bl.filter((b) => b.start && b.end && hmToMin(b.end) > n).map((b) => hmToMin(b.start) < n ? { ...b, start: minToHM(n) } : b);
+      sum += dayHours(bl);
+    }
+    return sum;
   }
   function loadLimits() {
     const L = { weekY: 45, weekR: 55, dayY: 10, dayR: 12, ...(S.load || {}) };
@@ -242,5 +254,5 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
 
   return { S, t, nowHM, items, byType, relDay, daysUntil, blocksOn, weekStats, taskBuckets, openTasks, doneOn, dayEntries, catName, activeHabits, habitDue, habitDoneOn,
     bdaysOn, contractInfo, exams, examWord, examName, dueCards, wxDay, wxAt, departures, isOutside, inQuiet, warnungen, timeCats,
-    travelFor, isTransit, isWorkBlock, arbeitWoche, freiZeit, konflikte };
+    travelFor, isTransit, isWorkBlock, arbeitWoche, freiZeit, konflikte, weekRest };
 }

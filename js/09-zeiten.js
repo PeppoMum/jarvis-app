@@ -561,7 +561,7 @@ function timeRange() {
   if (S.tview === 'month') { const d = dObj(base.slice(0, 8) + '01'), from = isoDate(d), to = isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0, 12)); return { from, to, label: MONL[d.getMonth()] + ' ' + d.getFullYear(), days: Number(to.slice(8)) }; }
   const from = mondayOf(base); return { from, to: addDays(from, 6), label: weekLabel(from), days: 7 };
 }
-const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
+const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|\blern|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
 const PRIV_HINT = /kochen|einkauf|haushalt|putzen|wäsche|arzt|friseur|sport|gym|fitness|laufen|joggen|freunde|familie|geburtstag|essen|privat/i;
 // Woche: Stunden je Bereich. Erfasste Zeit zählt; ein Termin nur, wenn er nicht schon erfasst ist.
 function weekCats(mon) {
