@@ -233,6 +233,9 @@ try {
   // zählt nur Arbeit, Uni, Ehrenamt: Seminar 1,5 + Vorlesung 1,75 + Spiel 1,5 + Arbeit 4 = 8,75 → 8,8; der Zug zählt nicht
   pruefe(wz.includes('machbar') && wz.includes('8,8 Std. verplant'), 'Ampel und verplante Stunden ohne Fahrten', wz);
   pruefe(wz.includes('Arbeit 4 von 20 Std. geplant'), 'Zeile „Arbeit 4 von 20 Std. geplant“', wz);
+  // Phil 12.11.: Lernen zählt als Uni (auch ohne Bereich im Kalender), „Kennenlernen“ aber nicht
+  gleich(await p.evaluate(() => [['Lernsession', '2026-11-12'], ['Lernen Praxissemester', '2026-11-12'], ['Kennenlernen Nachbarn', '2026-11-12']].map(([title, date]) => { const b = { kind: 'google', title, date, start: '14:00', end: '16:00', place: '' }; return [countsForLoad(b), (blockCat(b) || {}).cat || null]; })),
+    [[true, 'uni'], [true, 'uni'], [false, null]], 'Lernsession zählt als Uni und zur Woche, Kennenlernen nicht');
   gleich(await gibt(p, '.wcats,.stat,[data-act="plan"],[data-jt="pplan"]'), 0, 'Woche: keine Zahlen-Kacheln, kein „Woche planen“, kein „Zeit einplanen“');
   t = await text(p);
   pruefe(!t.includes('GEHEIM') && !t.includes('☐'), 'Woche zeigt keine Aufgaben');

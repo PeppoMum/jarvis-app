@@ -71,7 +71,10 @@ console.log("Widget im Plakat-Look (wie im Design-Board)");
   const g = bauen(TAG, "large"); const gt = texte(g);
   ok(!!gt.find((x) => x.t === "14:00" && x.n >= 56), "Groß: Uhrzeit riesig (mind. 56 pt)", gt.slice(0, 4));
   ok(stapel(g).filter((s) => s.size && s.size.h === 2).length >= 3, "Groß: Liste mit dicken Linien");
-  ok(!!gt.find((x) => x.t === "Woche 14/20"), "Groß: Woche unten", gt.map((x) => x.t));
+  ok(!!gt.find((x) => x.t === "14 Stunden verplant") && !gt.find((x) => /^Woche |Noch /.test(x.t)), "Groß: unten „14 Stunden verplant“ statt „Woche 14/20“", gt.map((x) => x.t));
+  ok(!!finde(m, "14 Stunden verplant") && !texte(m).find((x) => /^Woche |Noch /.test(x.t)), "Mittel: unten „14 Stunden verplant“ statt „Woche 14/20“", texte(m).map((x) => x.t));
+  ok(!!finde(welt(false, JETZT).bauen({ ...TAG, skin: "smaragd" }, "medium"), "14 Stunden verplant"), "Smaragd: ebenfalls „14 Stunden verplant“");
+  ok(!!finde(welt(false, JETZT).bauen({ ...TAG, woche: { h: 42.9, lim: 45, lvl: "y" } }, "medium"), "42,9 Stunden verplant"), "Kommazahl mit Komma: „42,9 Stunden verplant“");
 
   // eine Stunde früher: das Seminar läuft noch nicht → „in … Min.“ in Rot, Zeiten statt „noch“
   const { bauen: b2 } = welt(false, JETZT - 60 * 60000);

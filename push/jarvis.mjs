@@ -75,7 +75,7 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
   const isOutside = (b) => isTeamBlock(b) || !!(b.src && b.src.outside);
   const isTransit = (b) => !!b && b.kind !== "class" && b.kind !== "work" && TRANSIT_RE.test(b.title || "");
   /* Wie in der App: zur Wochen-Ampel zählen nur Arbeit, Uni und Ehrenamt (Fußball), keine Fahrten und nichts Privates */
-  const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
+  const UNI_HINT = /vorlesung|übung|uebung|seminar|tutorium|kolloquium|werkstatt|einführung|praxissemester|\blern|modul|stochastik|mathematik|pädagogik|didaktik|classroom|unterricht|hörsaal|campus|\buni\b|\bvl\b|\bn\d\b/i;
   const FUSSBALL_RE = /fußball|fussball|ehrenamt|scouting|sichtung|team-?event|mannschaft|verein|trainer|\bu\d{2}\b/i;
   const countsForLoad = (b) => !!b && !isTransit(b) && (b.cockpit || isTeamBlock(b) || FUSSBALL_RE.test(b.title || "") || b.kind === "class" || ["uni", "arbeit", "team"].includes(b.area)
     || isWorkBlock(b) || UNI_HINT.test((b.title || "") + " " + (b.place || "")));
