@@ -166,6 +166,7 @@ function weekLine(ws) {
 }
 function pageWeek() {
   if (S.calView === 'monat') return pageMonth();
+  if (S.calView === 'stunden') return pageStunden();
   const mon = curWeek(), ws = weekStats(mon), t = todayISO();
   const days = weekDays(mon).map(d => {
     const bl = blocksOn(d);
