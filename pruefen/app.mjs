@@ -248,7 +248,9 @@ try {
   /* ===== 4. Schnell notieren ===== */
   abschnitt('Schnell notieren: Termin oder Notiz');
   await zu(p, 'eingang');
-  const notiere = async v => { await p.fill('#ask-i', v); await p.click('#main form[data-form="ask"] button.send'); await p.waitForTimeout(150); };
+  // am Handy gibt es auf Notizen nur noch das Feld unten (kein zweites in der Karte)
+  gleich([await gibt(p, '#ask-i'), await gibt(p, '#ask-p')], [0, 1], 'Notizen am Handy: genau ein Feld „Schnell notieren“ (unten)');
+  const notiere = async v => { await p.fill('#ask-p', v); await p.click('.phonecomposer form[data-form="ask"] button.send'); await p.waitForTimeout(150); };
   await notiere('Fr 10 Uhr Zahnreinigung');
   pruefe(await gibt(p, '.sheet [data-act="confirm"]') === 1, 'Termin-Satz öffnet das Bestätigen-Fenster');
   gleich(await p.$$eval('.sheet [data-f="type"] option', xs => xs.map(x => x.value)), ['event'], 'Im Fenster gibt es nur noch „Termin“ als Art');
@@ -437,7 +439,7 @@ try {
 
   /* ===== 8. Aussehen: alle Looks, hell und dunkel, Handy und PC ===== */
   abschnitt('Lesbarkeit und Rand: 3 Looks (Plakat, Smaragd, Nur das Jetzt) × hell/dunkel × Handy/PC');
-  for (const [breite, hoehe2, handy, name] of [[360, 760, true, 'Handy'], [1280, 900, false, 'PC']]) for (const dunkel of [false, true]) {
+  for (const [breite, hoehe2, handy, name] of [[360, 760, true, 'Handy'], [390, 844, true, 'iPhone'], [1280, 900, false, 'PC']]) for (const dunkel of [false, true]) {
     const q = await oeffne(browser, { breite, hoehe: hoehe2, dunkel, handy });
     await q.evaluate(() => { window.showToast = () => {}; S.toast = null; });
     await q.waitForTimeout(100);   // erster Blick ist gemerkt; dann so tun, als wäre seitdem umgeplant worden, damit „Neu im Plan“ mitgeprüft wird
@@ -452,6 +454,8 @@ try {
         const wo = name + ' ' + (dunkel ? 'dunkel' : 'hell') + ' ' + skin + ' ' + r;
         const breit = await q.evaluate(() => document.documentElement.scrollWidth - innerWidth);
         pruefe(breit <= 0, wo + ': nichts ragt seitlich über den Rand', breit);
+        const kaesten = await q.evaluate(kaestenFunde, 'body');
+        pruefe(!kaesten.length, wo + ': nichts ragt über seinen Kasten, nichts überlappt, keine Ovale', kaesten.slice(0, 3));
         const schlecht = await q.evaluate(kontrastFunde);
         pruefe(!schlecht.length, wo + ': alle Schrift gut lesbar (Kontrast ≥ 4,5)', schlecht.slice(0, 3));
         if (skin === 'plakat' && r === 'heute') {
@@ -469,6 +473,34 @@ try {
           else pruefe(L.navSichtbar && L.navAbstand >= 6 && L.navAbstand <= 10, wo + ': Menüleiste unten nur 8 px vom Rand', L.navAbstand);
         }
       }
+    }
+    // Fenster: Termin verschieben (Tag, Beginn, Ende nebeneinander), Termin bearbeiten, Arbeitsblock bearbeiten
+    for (const skin of ['plakat', 'smaragd', 'ruhe']) {
+      await q.evaluate(k => { S.settings = { ...S.settings, skin: k }; applyLook(); S.calView = 'woche'; render(); }, skin);
+      for (const [fenster, auf] of [['Termin verschieben', () => openMove('g:g-vl')], ['Termin bearbeiten', () => document.querySelector('[data-edit="e-sem"]').click()], ['Arbeit bearbeiten', () => document.querySelector('[data-edit="w-do"]').click()]]) {
+        await zu(q, fenster === 'Termin verschieben' ? 'heute' : 'woche');
+        await q.evaluate(auf); await q.waitForTimeout(60);
+        const wo = name + ' ' + (dunkel ? 'dunkel' : 'hell') + ' ' + skin + ' Fenster „' + fenster + '“';
+        pruefe(await gibt(q, '.sheet') === 1, wo + ': geht auf');
+        const kaesten = await q.evaluate(kaestenFunde, '.sheet');
+        pruefe(!kaesten.length, wo + ': nichts ragt über seinen Kasten, nichts überlappt, keine Ovale', kaesten.slice(0, 3));
+        const schlecht = await q.evaluate(kontrastFunde);
+        pruefe(!schlecht.length, wo + ': alle Schrift gut lesbar (Kontrast ≥ 4,5)', schlecht.slice(0, 3));
+        // Datum/Uhrzeit: am iPhone bekommen diese Felder sonst eine feste Mindestbreite und ragen aus der Karte (Phils Foto vom 12.11.)
+        const felder = await q.evaluate(() => [...document.querySelectorAll('.sheet input[type=date],.sheet input[type=time]')].map(i => { const cs = getComputedStyle(i), f = i.closest('.field').getBoundingClientRect(), r = i.getBoundingClientRect(); return { app: cs.appearance, minW: cs.minWidth, passt: r.left >= f.left - 0.5 && r.right <= f.right + 0.5 }; }));
+        pruefe(felder.length >= 2 && felder.every(x => x.app === 'none' && x.minW === '0px' && x.passt), wo + ': Datum- und Uhrzeit-Felder ohne Mindestbreite, bleiben in ihrer Spalte', felder);
+        if (fenster === 'Termin verschieben') {
+          const R = await q.evaluate(() => ['date', 'start', 'end'].map(f => { const b = document.querySelector('.sheet [data-f="' + f + '"]').getBoundingClientRect(); return [Math.round(b.left), Math.round(b.right), Math.round(b.top)]; }).concat([(() => { const b = document.querySelector('.sheet .mvrow').getBoundingClientRect(); return [Math.round(b.left), Math.round(b.right)]; })()]));
+          const [tag, beg, ende, karte] = R;
+          pruefe(tag[1] <= karte[1] && beg[1] <= karte[1] && ende[1] <= karte[1], wo + ': Tag, Beginn und Ende enden innerhalb der Karte', R);
+          pruefe(beg[2] !== ende[2] || beg[1] <= ende[0], wo + ': Beginn und Ende liegen nebeneinander, ohne sich zu überdecken', R);
+        }
+        await q.evaluate(() => { S.move = null; S.editing = null; render(); });
+      }
+      // Zahnrad oben auf der Seite Einstellungen: Zeichen muss sich vom Knopf abheben
+      await zu(q, 'einstellungen');
+      const zr = await q.$eval('.top .iconbtn[aria-current="page"]', b => { const cs = getComputedStyle(b); return [cs.color, cs.backgroundColor, cs.borderTopColor]; });
+      pruefe(zr[0] !== zr[1] || zr[1] === 'rgba(0, 0, 0, 0)', name + ' ' + (dunkel ? 'dunkel' : 'hell') + ' ' + skin + ': Zahnrad auf der Seite Einstellungen ist zu sehen', zr);
     }
     gleich(q.fehler, [], name + ' ' + (dunkel ? 'dunkel' : 'hell') + ': keine Programmfehler');
     await q.context().close();
@@ -502,4 +534,46 @@ function kontrastFunde() {
     if (cr < (gross ? 3 : 4.5)) out.push(cr.toFixed(2) + ' „' + (el.value || el.textContent).trim().slice(0, 30).replace(/\s+/g, ' ') + '“ (' + el.tagName.toLowerCase() + '.' + String(el.className).split(' ')[0] + ')');
   }
   return [...new Set(out)];
+}
+
+/* Kästen: ragt etwas über seinen Rahmen (oder den Bildschirm), überlappt sich etwas, ist Schrift abgeschnitten, wird ein Kasten zum Oval? */
+function kaestenFunde(rootSel) {
+  const root = document.querySelector(rootSel) || document.body;
+  const vis = el => { const cs = getComputedStyle(el); if (cs.display==='none'||cs.visibility==='hidden'||Number(cs.opacity)===0) return false; const r = el.getBoundingClientRect(); return r.width>0 && r.height>0; };
+  const name = el => el.tagName.toLowerCase() + (el.className && typeof el.className==='string' ? '.'+el.className.trim().split(/\s+/).join('.') : '') + (el.textContent? ' „'+el.textContent.trim().replace(/\s+/g,' ').slice(0,28)+'“':'');
+  const isBox = el => { const cs = getComputedStyle(el); return parseFloat(cs.borderLeftWidth)>0 || parseFloat(cs.borderRightWidth)>0 || (cs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)) || cs.overflowX!=='visible'; };
+  const out = new Set();
+  const all = [...root.querySelectorAll('*')].filter(el => !el.closest('.sr') && !/^(svg|path|circle|line|rect|g|polyline|polygon|SCRIPT|STYLE|OPTION|BR)$/i.test(el.tagName) && vis(el));
+  for (const el of all) {
+    if (getComputedStyle(el).position==='fixed') continue;
+    const r = el.getBoundingClientRect();
+    // nächster Kasten (Rahmen/Hintergrund) darüber
+    let a = el.parentElement;
+    while (a && a!==document.body && !isBox(a)) a = a.parentElement;
+    if (!a || a===document.body || a===document.documentElement) { if (r.right > innerWidth+1 || r.left < -1) out.add('ÜBER BILDSCHIRMRAND: '+name(el)+' ['+Math.round(r.left)+'..'+Math.round(r.right)+']'); continue; }
+    const cs = getComputedStyle(a); if (cs.overflowX!=='visible' && el.closest('[class]')!==a && a.contains(el) && (cs.overflowX==='auto'||cs.overflowX==='scroll')) continue;
+    const b = a.getBoundingClientRect();
+    const bl = parseFloat(cs.borderLeftWidth)||0, br = parseFloat(cs.borderRightWidth)||0;
+    const dx = Math.max(r.right - (b.right - br), (b.left + bl) - r.left);
+    if (dx > 1.5 && getComputedStyle(el).position!=='absolute') out.add('RAGT ÜBER KASTEN ('+Math.round(dx)+'px): '+name(el)+' in '+name(a).slice(0,60));
+  }
+  // Überlappung: Geschwister, die beide sichtbar sind und sich schneiden
+  for (const el of all) {
+    const kids = [...el.children].filter(k => vis(k) && !['absolute','fixed','sticky'].includes(getComputedStyle(k).position) && !/^(svg|i)$/i.test(k.tagName));
+    for (let i=0;i<kids.length;i++) for (let j=i+1;j<kids.length;j++) {
+      let ox=0, oy=0; for (const A of kids[i].getClientRects()) for (const B of kids[j].getClientRects()) { const x = Math.min(A.right,B.right)-Math.max(A.left,B.left), y = Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top); if (x>2 && y>2) { ox=x; oy=y; } }
+      if (ox>2 && oy>2) out.add('ÜBERLAPPT ('+Math.round(ox)+'×'+Math.round(oy)+'): '+name(kids[i]).slice(0,50)+' ⟷ '+name(kids[j]).slice(0,50));
+    }
+  }
+  // abgeschnittene Schrift (ohne „…“)
+  for (const el of all) {
+    const cs = getComputedStyle(el);
+    if ((cs.overflow==='hidden'||cs.overflowX==='hidden') && cs.textOverflow!=='ellipsis' && el.scrollWidth > el.clientWidth+2 && el.textContent.trim()) out.add('ABGESCHNITTEN: '+name(el));
+  }
+  // Kästen, die durch „ganz rund“ zu Ovalen werden (Ecken schneiden den Inhalt)
+  for (const el of all) {
+    const r = el.getBoundingClientRect(), rad = parseFloat(getComputedStyle(el).borderTopLeftRadius)||0;
+    if (r.height > 60 && Math.abs(r.width - r.height) > 4 && rad > Math.min(r.width, r.height) / 2 - 1 && rad > 30) out.add('OVAL: '+name(el).slice(0,60)+' ('+Math.round(r.width)+'×'+Math.round(r.height)+')');
+  }
+  return [...out];
 }
