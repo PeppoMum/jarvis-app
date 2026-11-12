@@ -228,3 +228,29 @@ html[data-design="jarvis"][data-skin="ruhe"] .jplan .jtrack .jb.ride{background:
   html[data-design="jarvis"][data-skin="ruhe"] .bottomnav{border:0;border-radius:999px}
   html[data-design="jarvis"][data-skin="ruhe"] .bottomnav a{border-radius:999px}
 }
+
+/* ===== Aufräumen (13.11.2026, Phil): nichts ragt über Kästen, nichts überlappt, keine Ovale ===== */
+/* Datum- und Uhrzeit-Felder: iPhone (Safari) gibt ihnen sonst eine feste Mindestbreite – sie ragen dann
+   rechts aus der Karte und schieben sich übereinander (z. B. „Termin verschieben“: Tag, Beginn, Ende). */
+input:is([type="date"],[type="time"],[type="datetime-local"],[type="month"],[type="week"]){-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;width:100%;text-align:left}
+input:is([type="date"],[type="time"],[type="datetime-local"],[type="month"],[type="week"])::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.2em}
+.field{min-width:0;max-width:100%}
+/* Formular-Kästen: Eingabefelder unten bündig, auch wenn eine Beschriftung zweizeilig ist */
+.pv{align-items:end}
+/* Große Flächen nie „ganz rund“ (sonst werden Formular-Kästen, Monatstage und mehrzeilige Felder zu Ovalen).
+   Nur Knöpfe und Leisten bleiben Pillen. */
+html[data-design="jarvis"][data-skin][data-skin] :is(.mday,.bcard,.hint,.mstat div,.wa,.ans,.flash,.btipp,.jbubble,.mebubble,.jmsg,.toast,.field textarea,.infos a){border-radius:min(var(--r-ctl),14px)}
+html[data-design="jarvis"][data-skin][data-skin] .composer textarea{border-radius:min(var(--r-ctl),20px)}
+html[data-design="jarvis"][data-skin][data-skin] .pv{border-radius:min(var(--r-card),20px)}
+/* Gewähltes Zahnrad oben (auf der Seite Einstellungen): Zeichen war gleich gefärbt wie der Hintergrund und unsichtbar */
+html[data-design="jarvis"][data-skin] .top .iconbtn[aria-current="page"]{background:var(--navon);color:var(--onnavon);border-color:transparent}
+html[data-design="jarvis"][data-skin="plakat"] .top .iconbtn[aria-current="page"]{background:transparent;color:var(--ac);border:2px solid var(--ac)}
+/* Schmales Handy: Reiter „Einstellungen · Meldungen · Papierkorb“ passen ganz in die Leiste */
+@media(max-width:400px){.gtabs button{padding:0 10px}}
+@media(max-width:760px){
+  /* Tagesplan am Handy ohne Karte: dann auch ohne Schatten-Rand, sonst klebt die Schrift am Rand eines halb sichtbaren Kastens */
+  html[data-design="jarvis"]:is([data-skin="smaragd"],[data-skin="ruhe"]) section.card.jplan{box-shadow:none;border-color:transparent}
+  /* Notizen am Handy: unten gibt es schon „Schnell notieren“ – kein zweites Feld mit Leerraum in der Karte */
+  html[data-route="eingang"] #main .composer,html[data-route="eingang"] #main .composer + .status{display:none}
+  html[data-route="eingang"] #main section.card.side > .sub{margin-top:0!important}
+}
