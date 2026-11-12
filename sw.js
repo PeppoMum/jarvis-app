@@ -2,7 +2,7 @@
    Eigene Dateien: zuerst aus dem Netz (immer der neueste Stand, am Zwischenspeicher des Handys vorbei), ohne Netz der zuletzt gespeicherte.
    Firebase-Bausteine (feste Version bei gstatic): zuerst aus dem Speicher. Alles andere (Firebase, Google, Wetter) nie anfassen.
    V erhöhen, wenn sich an dieser Datei etwas ändert. */
-const V = "jarvis-v2", KERN = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/badge-96.png"];
+const V = "jarvis-v3", KERN = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/badge-96.png"];
 const SDK = "https://www.gstatic.com/firebasejs/";
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(V).then((c) => Promise.all(KERN.map((u) => c.add(u).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((k) => Promise.all(k.filter((x) => x !== V).map((x) => caches.delete(x)))).then(() => self.clients.claim())); });

@@ -347,6 +347,25 @@ try {
   gleich(p.fehler, [], 'Keine Programmfehler beim Design-Wechsel');
   await p.context().close();
 
+  /* ===== 7c. App-Symbol G (12.11.2026): weiß, schwarzer offener Ring, schwarzes J ===== */
+  abschnitt('App-Symbol: G – weiß mit schwarzem Ring und J, in allen Größen');
+  p = await oeffne(browser);
+  const sym = await p.evaluate(async () => {
+    const man = await (await fetch('manifest.webmanifest')).json();
+    const liste = man.icons.map(i => [i.src, Number(i.sizes.split('x')[0])]).concat([[document.querySelector('link[rel="apple-touch-icon"]').getAttribute('href'), 180]]);
+    const out = {};
+    for (const [src, n] of liste) {
+      const img = new Image(); img.src = src + '?' + Date.now(); await img.decode();
+      const c = document.createElement('canvas'); c.width = c.height = n; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+      const f = (a, b) => { const d = x.getImageData(Math.round(a * n / 512), Math.round(b * n / 512), 1, 1).data; return d[0] + d[1] + d[2] < 120 ? 'schwarz' : d[0] + d[1] + d[2] > 720 ? 'weiß' : 'anders'; };
+      out[src] = [img.naturalWidth, f(12, 12), f(256, 406), f(300, 200), f(256, 256), f(106, 256)];
+    }
+    return out;
+  });
+  for (const [src, v] of Object.entries(sym)) gleich(v.slice(1), ['weiß', 'schwarz', 'schwarz', 'weiß', 'schwarz'], src + ': Grund weiß, Ring unten und links schwarz, J-Strich schwarz, Mitte frei');
+  for (const [src, v] of Object.entries(sym)) pruefe(v[0] === Number((src.match(/(\d+)\.png$/) || [])[1]), src + ': Bildgröße stimmt (' + v[0] + ' px)');
+  await p.context().close();
+
   /* ===== 8. Aussehen: alle Looks, hell und dunkel, Handy und PC ===== */
   abschnitt('Lesbarkeit und Rand: 3 Looks (Plakat, Smaragd, Nur das Jetzt) × hell/dunkel × Handy/PC');
   for (const [breite, hoehe2, handy, name] of [[360, 760, true, 'Handy'], [1280, 900, false, 'PC']]) for (const dunkel of [false, true]) {

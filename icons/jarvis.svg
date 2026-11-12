@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Jarvis-App-Symbol „J im Ring“ (Smaragd Ruhig), Phil 30.10.2026 -->
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0E6E54"/><stop offset="1" stop-color="#0A4F3D"/></linearGradient></defs>
-  <rect width="512" height="512" fill="url(#g)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#F8E7C9" stroke-width="18" stroke-linecap="round" stroke-dasharray="820 120" transform="rotate(-62 256 256)" opacity=".9"/>
-  <path transform="translate(208.8 318) scale(0.2 -0.2)" d="M215 -11Q148 -11 98.5 13.5Q49 38 14 82L119 183Q137 158 161.5 145.0Q186 132 217 132Q247 132 269.0 144.5Q291 157 304.0 180.5Q317 204 317 239V706H475V248Q475 169 443.0 111.0Q411 53 353.0 21.0Q295 -11 215 -11Z" fill="#F8E7C9"/>
+  <!-- Jarvis-App-Symbol G „Ring in Schwarz auf Weiß“ (Plakat), Phil 12.11.2026. J aus Inter Tight 900 als Pfad -->
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#0A0A0A" stroke-width="22" stroke-dasharray="820 120" transform="rotate(-62 256 256)"/>
+  <path transform="translate(186.0 357) scale(0.1292 -0.1292)" d="M546 -20Q403 -20 278.0 30.0Q153 80 76.5 187.0Q0 294 0 466V472H404V466Q404 410 421.0 371.5Q438 333 470.0 313.5Q502 294 546 294Q591 294 622.5 313.5Q654 333 670.0 372.0Q686 411 686 468V1490H1084V468Q1084 323 1018.5 213.0Q953 103 832.0 41.5Q711 -20 546 -20Z" fill="#0A0A0A"/>
 </svg>
