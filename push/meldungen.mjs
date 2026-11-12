@@ -101,7 +101,7 @@ export function widgetDaten(J, focus) {
     termine: rest, morgen, los: dep ? { at: dep.at, ti: dep.b.title.slice(0, 40) } : null,
     auf: { heute: 0, ueber: 0, top: [] },   /* Aufgaben gibt es nicht mehr; bleibt leer, damit ein älteres Widget-Skript nicht abstürzt */
     wetter: w ? { hi: w.hi, lo: w.lo, tx: w.phrase, regen: w.rain } : null,
-    woche: { h: Math.round(ws.total * 10) / 10, lim: ws.limY, lvl: ws.lvl, rest: Math.round(J.weekRest() * 10) / 10 },
+    woche: { h: Math.round(ws.total * 10) / 10, lim: ws.limY, lvl: ws.lvl },
     uhr: focus && focus.mode === "track" && focus.startedAt ? { cat: J.catName(focus.cat), seit: focus.startedAt, pause: focus.pausedAt || null, pausedMs: focus.pausedMs || 0 } : null
   };
 }

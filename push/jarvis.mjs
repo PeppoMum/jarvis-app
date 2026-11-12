@@ -86,18 +86,6 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
     if (ce > cs) sum += ce - cs;
     return sum / 60;
   }
-  /* Noch offene Stunden dieser Woche (Widget, Phil 12.11.2026): nur was ab jetzt bis Sonntag noch kommt, gezählt wie die Ampel
-     (Arbeit, Uni, Ehrenamt; keine Fahrten, nichts Sonstiges). Ein Termin, der gerade läuft, zählt nur mit dem Rest. */
-  function weekRest() {
-    const n = hmToMin(nowHM), sun = addDays(mondayOf(t), 6);
-    let sum = 0;
-    for (let d = t; d <= sun; d = addDays(d, 1)) {
-      let bl = blocksOn(d);
-      if (d === t) bl = bl.filter((b) => b.start && b.end && hmToMin(b.end) > n).map((b) => hmToMin(b.start) < n ? { ...b, start: minToHM(n) } : b);
-      sum += dayHours(bl);
-    }
-    return sum;
-  }
   function loadLimits() {
     const L = { weekY: 45, weekR: 55, dayY: 10, dayR: 12, ...(S.load || {}) };
     Object.keys(L).forEach((k) => { L[k] = Math.max(0, Number(L[k]) || 0); });
@@ -254,5 +242,5 @@ export function jarvis({ items = [], settings = {}, gcal = [], wetter = null, wa
 
   return { S, t, nowHM, items, byType, relDay, daysUntil, blocksOn, weekStats, taskBuckets, openTasks, doneOn, dayEntries, catName, activeHabits, habitDue, habitDoneOn,
     bdaysOn, contractInfo, exams, examWord, examName, dueCards, wxDay, wxAt, departures, isOutside, inQuiet, warnungen, timeCats,
-    travelFor, isTransit, isWorkBlock, arbeitWoche, freiZeit, konflikte, weekRest };
+    travelFor, isTransit, isWorkBlock, arbeitWoche, freiZeit, konflikte };
 }

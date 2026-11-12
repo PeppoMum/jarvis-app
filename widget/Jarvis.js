@@ -172,9 +172,9 @@ function naechstKarte(s, C, p, gr) {
   txt(k, p.nx.ti, F.fett(gr), C.tx);
   txt(k, p.nx.s + (p.nx.e ? " bis " + p.nx.e : "") + (p.nx.o ? " · " + p.nx.o : ""), F.normal(gr - 3), C.mu);
 }
-// Unten im Widget: wie viele Stunden diese Woche noch verplant sind (ab jetzt, nur Arbeit, Uni, Ehrenamt). Ältere Daten ohne „rest“: bisherige Zeile.
-const wocheText = (d) => d.woche.rest != null ? "Noch " + String(d.woche.rest).replace(".", ",") + " Std. verplant" : "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim;
-const wocheFarbe = (C, d) => d.woche.rest != null || d.woche.lvl === "g" ? C.mu : C.red;
+// Unten im Widget (Phil 12.11.2026): verplante Stunden der ganzen Woche, wie die Ampel gezählt (Arbeit, Uni, Ehrenamt; keine Fahrten, nichts Sonstiges)
+const wocheText = (d) => String(d.woche.h).replace(".", ",") + " Stunden verplant";
+const wocheFarbe = (C, d) => C.mu;
 function zahlen(s, C, d, kurz) {
   txt(s, wocheText(d), F.halb(12), wocheFarbe(C, d));
 }

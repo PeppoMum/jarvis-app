@@ -172,16 +172,14 @@ r = await lauf("2026-11-03T10:00:00");
   /* Widget (Plakat): Fahrten sind markiert, damit sie blass in der Liste stehen und nie groß als „Als Nächstes“ */
   { const { widgetDaten } = await import("./meldungen.mjs"); const wd = widgetDaten(J(mitFahrt, "2026-11-05T10:00:00"), null);
     assert.deepEqual(wd.termine.map((x) => [x.ti, x.f]), [["Arbeit Homeoffice", 0], ["Fahrt zum Training", 1], ["Training U13", 0]], "Fahrt im Widget nicht markiert"); }
-  /* Widget unten (Phil 12.11.): noch verplante Stunden dieser Woche, ab jetzt, nur Arbeit, Uni (auch Lernen), Ehrenamt.
-     Do 05.11. 10:00: Arbeit läuft noch 1 Std, Lernsession 2 Std, Training Fr 1,5 Std = 4,5. Nicht dabei: Mittwoch (vorbei), Zug, Kochen,
-     „Kennenlernen“ (kein Lernen), nächster Montag. */
+  /* Widget unten (Phil 12.11.): verplante Stunden der ganzen Woche, nur Arbeit, Uni (auch Lernen), Ehrenamt.
+     Woche 02.–08.11.: Arbeit Mi 3 + Do 3, Lernsession 2, Training 1,5 = 9,5. Nicht dabei: Zug, Kochen, „Kennenlernen“, nächster Montag. */
   { const { widgetDaten } = await import("./meldungen.mjs");
     const woche = [g("a1", "2026-11-04", "09:00", "12:00", "Arbeit Büro"), g("a2", "2026-11-05", "08:00", "11:00", "Arbeit Homeoffice"), g("z", "2026-11-05", "13:00", "14:00", "Zug nach Essen"),
       g("l", "2026-11-05", "14:00", "16:00", "Lernsession"), g("k", "2026-11-05", "18:00", "19:00", "Kochen"), g("t", "2026-11-06", "17:00", "18:30", "Training U13"),
       g("kl", "2026-11-07", "10:00", "11:00", "Kennenlernen Nachbarn"), g("n", "2026-11-09", "09:00", "13:00", "Arbeit Büro")];
-    const wd = widgetDaten(J(woche, "2026-11-05T10:00:00"), null);
-    assert.equal(wd.woche.rest, 4.5, "Widget: noch verplante Stunden falsch: " + wd.woche.rest);
-    assert.equal(widgetDaten(J(woche, "2026-11-06T18:00:00"), null).woche.rest, 0.5, "Widget: am Freitag 18 Uhr zählt nur noch die halbe Stunde Training"); }
+    assert.equal(widgetDaten(J(woche, "2026-11-05T10:00:00"), null).woche.h, 9.5, "Widget: verplante Stunden der Woche falsch");
+    assert.equal(widgetDaten(J(woche, "2026-11-08T20:00:00"), null).woche.h, 9.5, "Widget: Erledigtes muss in der Wochensumme bleiben"); }
   /* Fußball-App: Abfahrt aus der Beschreibung (13:25) vor Ende der Arbeit (13:30) */
   const cockpit = [g("h", "2026-11-07", "09:00", "13:30", "Arbeit Homeoffice"), g("sp", "2026-11-07", "14:00", "16:00", "Spiel U13", { calName: "U13 Trainer-Cockpit", cockpit: true, abf: "13:25", abfMin: 10 })];
   w = ueb(J(cockpit, "2026-11-07T10:00:00")); assert.equal(w.length, 1); assert.match(w[0].msg.b, /um 13:25 los/);

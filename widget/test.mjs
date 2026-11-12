@@ -47,7 +47,7 @@ const TAG = { v: 1, at: JETZT - 5 * 60000, tag: "2026-11-12", tagText: "Donnerst
   termine: [{ s: "14:00", e: "15:30", ti: "Seminar Mathe-Didaktik", o: "Hörsaal 2", k: "uni", f: 0 }, { s: "15:40", e: "16:10", ti: "Trainingsvorbereitung", o: "", k: "team", f: 0 },
     { s: "16:10", e: "16:40", ti: "Abfahrt zum Platz", o: "", k: "", f: 1 }, { s: "17:00", e: "18:30", ti: "Training U13", o: "Sportplatz", k: "team", f: 0 }, { s: "19:30", e: "20:30", ti: "Lernen Praxissemester", o: "", k: "uni", f: 0 }],
   morgen: [{ s: "07:30", e: "12:00", ti: "Arbeit · Homeoffice", k: "arbeit", f: 0 }, { s: "14:00", e: "16:00", ti: "N2 Vorbereitung", k: "uni", f: 0 }], los: null, auf: { heute: 0, ueber: 0, top: [] },
-  wetter: { hi: 7, lo: 2, tx: "bewölkt", regen: 10 }, woche: { h: 14, lim: 20, lvl: "g", rest: 6.5 }, uhr: null };
+  wetter: { hi: 7, lo: 2, tx: "bewölkt", regen: 10 }, woche: { h: 14, lim: 20, lvl: "g" }, uhr: null };
 const ROT_H = "#D7000F", ROT_D = "#FF4D57";
 
 console.log("Widget im Plakat-Look (wie im Design-Board)");
@@ -71,10 +71,10 @@ console.log("Widget im Plakat-Look (wie im Design-Board)");
   const g = bauen(TAG, "large"); const gt = texte(g);
   ok(!!gt.find((x) => x.t === "14:00" && x.n >= 56), "Groß: Uhrzeit riesig (mind. 56 pt)", gt.slice(0, 4));
   ok(stapel(g).filter((s) => s.size && s.size.h === 2).length >= 3, "Groß: Liste mit dicken Linien");
-  ok(!!gt.find((x) => x.t === "Noch 6,5 Std. verplant") && !gt.find((x) => /^Woche /.test(x.t)), "Groß: unten die noch verplanten Stunden statt „Woche 14/20“", gt.map((x) => x.t));
-  ok(!!finde(m, "Noch 6,5 Std. verplant") && !texte(m).find((x) => /^Woche /.test(x.t)), "Mittel: unten die noch verplanten Stunden statt „Woche 14/20“", texte(m).map((x) => x.t));
-  ok(!!finde(welt(false, JETZT).bauen({ ...TAG, skin: "smaragd" }, "medium"), "Noch 6,5 Std. verplant"), "Smaragd: ebenfalls die noch verplanten Stunden");
-  ok(!!finde(welt(false, JETZT).bauen({ ...TAG, woche: { h: 14, lim: 20, lvl: "g" } }, "medium"), "Woche 14/20"), "Ältere Daten ohne Angabe: bisherige Zeile statt Absturz");
+  ok(!!gt.find((x) => x.t === "14 Stunden verplant") && !gt.find((x) => /^Woche |Noch /.test(x.t)), "Groß: unten „14 Stunden verplant“ statt „Woche 14/20“", gt.map((x) => x.t));
+  ok(!!finde(m, "14 Stunden verplant") && !texte(m).find((x) => /^Woche |Noch /.test(x.t)), "Mittel: unten „14 Stunden verplant“ statt „Woche 14/20“", texte(m).map((x) => x.t));
+  ok(!!finde(welt(false, JETZT).bauen({ ...TAG, skin: "smaragd" }, "medium"), "14 Stunden verplant"), "Smaragd: ebenfalls „14 Stunden verplant“");
+  ok(!!finde(welt(false, JETZT).bauen({ ...TAG, woche: { h: 42.9, lim: 45, lvl: "y" } }, "medium"), "42,9 Stunden verplant"), "Kommazahl mit Komma: „42,9 Stunden verplant“");
 
   // eine Stunde früher: das Seminar läuft noch nicht → „in … Min.“ in Rot, Zeiten statt „noch“
   const { bauen: b2 } = welt(false, JETZT - 60 * 60000);
