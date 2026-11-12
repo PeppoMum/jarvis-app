@@ -32,6 +32,8 @@ jobs:
         run: |
           cd push && npm install --no-save --no-audit --no-fund ical.js@2.1.0 && cd ..
           node push/test.mjs
+      - name: Handy-Widget (Plakat wie im Design-Board)
+        run: node widget/test.mjs
       - name: Fokus-App
         run: |
           if [ -f fokus/test.mjs ]; then node fokus/test.mjs; else echo "Noch keine Fokus-App im Repo."; fi

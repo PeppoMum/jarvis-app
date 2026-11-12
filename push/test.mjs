@@ -169,6 +169,9 @@ r = await lauf("2026-11-03T10:00:00");
   const mitFahrt = [g("h", "2026-11-05", "13:00", "16:30", "Arbeit Homeoffice"), g("f", "2026-11-05", "16:15", "16:45", "Fahrt zum Training"), g("t", "2026-11-05", "16:45", "18:00", "Training U13", { place: "Stausee" })];
   w = ueb(J(mitFahrt, "2026-11-05T10:00:00"));
   assert.equal(w.length, 1, "Fahrt vor Ende der Arbeit nicht erkannt: " + JSON.stringify(w.map((x) => x.msg.b))); assert.match(w[0].msg.b, /um 16:15 los/);
+  /* Widget (Plakat): Fahrten sind markiert, damit sie blass in der Liste stehen und nie groß als „Als Nächstes“ */
+  { const { widgetDaten } = await import("./meldungen.mjs"); const wd = widgetDaten(J(mitFahrt, "2026-11-05T10:00:00"), null);
+    assert.deepEqual(wd.termine.map((x) => [x.ti, x.f]), [["Arbeit Homeoffice", 0], ["Fahrt zum Training", 1], ["Training U13", 0]], "Fahrt im Widget nicht markiert"); }
   /* Fußball-App: Abfahrt aus der Beschreibung (13:25) vor Ende der Arbeit (13:30) */
   const cockpit = [g("h", "2026-11-07", "09:00", "13:30", "Arbeit Homeoffice"), g("sp", "2026-11-07", "14:00", "16:00", "Spiel U13", { calName: "U13 Trainer-Cockpit", cockpit: true, abf: "13:25", abfMin: 10 })];
   w = ueb(J(cockpit, "2026-11-07T10:00:00")); assert.equal(w.length, 1); assert.match(w[0].msg.b, /um 13:25 los/);

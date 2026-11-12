@@ -91,8 +91,8 @@ export function jetztDran(J, gesendet) {
 const bereich = (x) => ["uni", "arbeit", "team", "alltag"].includes(x.area) ? x.area : /training|spiel|turnier|twingame/i.test(x.title || "") ? "team" : "";
 export function widgetDaten(J, focus) {
   const t = J.t, n = hmToMin(J.nowHM), m = addDays(t, 1);
-  const rest = J.blocksOn(t).filter((x) => x.start && (hmToMin(x.end || x.start) ?? 0) > n).slice(0, 4).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), o: x.place ? String(x.place).slice(0, 30) : "", k: bereich(x) }));
-  const morgen = J.blocksOn(m).filter((x) => x.start).slice(0, 3).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), k: bereich(x) }));
+  const rest = J.blocksOn(t).filter((x) => x.start && (hmToMin(x.end || x.start) ?? 0) > n).slice(0, 4).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), o: x.place ? String(x.place).slice(0, 30) : "", k: bereich(x), f: J.isTransit(x) ? 1 : 0 }));
+  const morgen = J.blocksOn(m).filter((x) => x.start).slice(0, 3).map((x) => ({ s: x.start, e: x.end || "", ti: x.title.slice(0, 40), k: bereich(x), f: J.isTransit(x) ? 1 : 0 }));
   const dep = J.departures(t).find((x) => hmToMin(x.at) >= n - 10);
   const w = J.wxDay(t), ws = J.weekStats(mondayOf(t));
   return {
