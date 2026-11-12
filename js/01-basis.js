@@ -122,7 +122,16 @@ const S = {
 const CCR = 'Claude Code Remote', FREE_SLOT = 'Jarvis Bericht (frei)';
 const WX = 'AccuWeather®', GMAIL = 'Gmail';
 const DEFAULT_RULES = 'Ich arbeite 20 Stunden pro Woche in Gleitzeit an 3 Arbeitstagen: Mittwoch, Donnerstag und Freitag. Mittwoch und Donnerstag sind lange Tage, Freitag ist ein kurzer Tag und immer Homeoffice. Zusätzlich ist entweder Mittwoch ODER Donnerstag Homeoffice; am anderen der beiden Tage bin ich im Büro und wechsle meist mittags ins Homeoffice. Arbeitszeit frühestens 7 Uhr, spätestens 19 Uhr. Gesetzliche Pausen beachten (ab 6 Stunden 30 Minuten, ab 9 Stunden 45 Minuten).';
-try { const c = JSON.parse(localStorage.getItem('jarvis.look') || 'null'); if (c) Object.assign(S.settings, c); } catch (e) {}
+// Hell/Dunkel gilt pro Gerät (Phil, 12.11.2026: sein PC ist immer dunkel), steht nur auf dem Gerät unter „jarvis.mode“.
+// Das Design (skin) gehört weiter zum Konto; „jarvis.look“ merkt es sich nur, damit es beim Start sofort stimmt.
+const MODES = ['auto', 'light', 'dark'];
+function devMode() { try { const m = localStorage.getItem('jarvis.mode'); return MODES.includes(m) ? m : 'auto'; } catch (e) { return 'auto'; } }
+try {
+  const c = JSON.parse(localStorage.getItem('jarvis.look') || 'null');
+  if (c && c.skin) S.settings.skin = c.skin;
+  if (c && MODES.includes(c.mode) && localStorage.getItem('jarvis.mode') === null) localStorage.setItem('jarvis.mode', c.mode);   // bisherige Wahl auf diesem Gerät übernehmen
+} catch (e) {}
+S.settings.mode = devMode();
 // Letzter Kalender-Stand, damit Termine sofort da sind, auch bevor Google antwortet (höchstens 2 Tage alt)
 try { const g = JSON.parse(localStorage.getItem('jarvis.gcal') || 'null'); if (g && Array.isArray(g.list) && Date.now() - g.at < 2 * 864e5) { S.gcal = g.list; S.gcalOld = g.at; } } catch (e) {}
 
@@ -134,7 +143,7 @@ const local = {
   read() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}'); } catch (e) { return {}; } },
   write(o) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(o)); } catch (e) {} }
 };
-const LOOK_KEYS = ['mode', 'skin'];
+const LOOK_KEYS = ['skin'];   // Hell/Dunkel nicht: das gilt pro Gerät (devMode)
 const store = {
   async setItem(it) {
     if (db) return db.collection('items').doc(it.id).set(it);
@@ -144,12 +153,14 @@ const store = {
     if (db) return db.collection('items').doc(id).delete();
     const o = local.read(); if (o.items) delete o.items[id]; local.write(o); S.items = Object.values(o.items || {}); render();
   },
-  // Design + Hell/Dunkel gehören zum Konto: nur der Knopf in den Einstellungen (look = 'skin' oder 'mode') schreibt sie,
+  // Das Design gehört zum Konto: nur der Knopf in den Einstellungen (look = 'skin') schreibt es,
   // alle anderen Speicherungen nehmen den Stand aus dem Konto, damit ein Gerät mit altem Stand ihn nicht überschreibt.
+  // Hell/Dunkel (look = 'mode') bleibt nur auf diesem Gerät und geht nie ins Konto.
   async setSettings(s, look) {
-    if (look) try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: s.mode, skin: s.skin })); } catch (e) {}
+    if (look === 'mode') { try { localStorage.setItem('jarvis.mode', s.mode); } catch (e) {} return; }
+    if (look) try { localStorage.setItem('jarvis.look', JSON.stringify({ skin: s.skin })); } catch (e) {}
     if (db) {
-      const o = { ...s };
+      const o = { ...s }; delete o.mode;
       if (look) { if (S.cloudLook) S.cloudLook[look] = s[look]; return db.doc('meta/settings').set({ [look]: s[look] }, { merge: true }); }
       if (!S.cloudLook) { LOOK_KEYS.forEach(k => delete o[k]); return db.doc('meta/settings').set(o, { merge: true }); }
       LOOK_KEYS.forEach(k => { if (S.cloudLook[k] === undefined) delete o[k]; else o[k] = S.cloudLook[k]; });
@@ -192,8 +203,9 @@ async function boot() {
     db.doc('meta/settings').onSnapshot(snap => {
       if (!S.setSeen) { S.setSeen = true; S.setExists = snap.exists; }
       const d = snap.exists ? snap.data() : {};
-      S.cloudLook = { mode: d.mode, skin: d.skin };
-      if (snap.exists) { S.settings = { ...S.settings, ...d }; try { localStorage.setItem('jarvis.look', JSON.stringify({ mode: S.settings.mode, skin: S.settings.skin })); } catch (e) {} applyLook(); render(); }
+      if (snap.exists && d.lookV !== 2) { d.skin = 'plakat'; d.lookV = 2; db.doc('meta/settings').set({ skin: 'plakat', lookV: 2 }, { merge: true }).catch(() => {}); }   // 12.11.2026: Plakat wird einmalig für alle eingeschaltet
+      S.cloudLook = { skin: d.skin };
+      if (snap.exists) { S.settings = { ...S.settings, ...d, mode: devMode() }; try { localStorage.setItem('jarvis.look', JSON.stringify({ skin: S.settings.skin })); } catch (e) {} applyLook(); render(); }
     }, onDbError);
     db.doc('meta/timer').onSnapshot(snap => { S.timer = snap.exists && snap.data().subjectId ? snap.data() : null; render(); }, onDbError);
     db.doc('meta/chat').onSnapshot(snap => { S.chat = snap.exists ? (snap.data().log || []) : []; render(); }, onDbError);
@@ -213,7 +225,7 @@ async function boot() {
     if (mcp) { fetchGcal(); fetchWeather(); setTimeout(checkSiriInbox, 2500); setInterval(() => { if (!document.hidden) { fetchGcal(); fetchWeather(); checkSiriInbox(); } }, 10 * 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSiriInbox(); }); }
   } else {
     const o = local.read();
-    S.items = Object.values(o.items || {}); S.timer = o.timer || null; S.focus = o.focus || null; S.meals = o.meals || null; S.trash = Object.values(o.trash || {}); S.team = o.team || null; S.finance = o.finance || null; if (o.settings) S.settings = { ...S.settings, ...o.settings }; S.setSeen = true; S.setExists = !!o.settings; S.chat = o.chat || []; S.log = Object.values(o.log || {}); S.planseen = o.planseen || null; S.planseenLoaded = true; S.loaded = true;
+    S.items = Object.values(o.items || {}); S.timer = o.timer || null; S.focus = o.focus || null; S.meals = o.meals || null; S.trash = Object.values(o.trash || {}); S.team = o.team || null; S.finance = o.finance || null; if (o.settings) { if (o.settings.lookV !== 2) { o.settings = { ...o.settings, skin: 'plakat', lookV: 2 }; local.write(o); } S.settings = { ...S.settings, ...o.settings, mode: devMode() }; } S.setSeen = true; S.setExists = !!o.settings; S.chat = o.chat || []; S.log = Object.values(o.log || {}); S.planseen = o.planseen || null; S.planseenLoaded = true; S.loaded = true;
     applyLook(); render();
   }
 }
@@ -236,13 +248,14 @@ function applyLook() {
   else { html.dataset.palette = S.settings.palette || 'smaragd'; delete html.dataset.design; delete html.dataset.jcol; }
 }
 const isJarvis = () => true;   // eigene App: Aufbau der Seiten aus dem Jarvis-Design, Farben aus den Looks
-// Drei ruhige Looks (css/looks.css), Phil 29.10.2026. Rüstung am 30.10.2026 entfernt: wer sie hatte, bekommt Smaragd Ruhig.
+// Looks (css/looks.css). 12.11.2026 (Phil): Plakat ist Standard, dazu Smaragd Ruhig und Nur das Jetzt. Glas und Polar raus:
+// wer sie noch hatte, bekommt Plakat.
 const SKINS = [
+  { id: 'plakat', name: 'Plakat', sub: 'Riesige Schrift, Schwarz, Weiß und Rot', c: ['#0A0A0A', '#FFFFFF', '#D7000F'] },
   { id: 'smaragd', name: 'Smaragd Ruhig', sub: 'Weich und rund, viel Luft', c: ['#0B5D47', '#F8E7C9', '#20201F'] },
-  { id: 'glas', name: 'Glas', sub: 'Halb durchsichtig, Petrol und Koralle', c: ['#0F5C6E', '#FF9A85', '#08161A'] },
-  { id: 'polar', name: 'Polar', sub: 'Klare Linien, leichtes Leuchten', c: ['#0A62C2', '#7DBBFF', '#1F2123'] }
+  { id: 'ruhe', name: 'Nur das Jetzt', sub: 'Ruhig, Sand und Smaragd, große runde Karten', c: ['#0E6E54', '#EFEBE4', '#2B2622'] }
 ];
-const skinId = () => SKINS.some(k => k.id === S.settings.skin) ? S.settings.skin : 'smaragd';
+const skinId = () => SKINS.some(k => k.id === S.settings.skin) ? S.settings.skin : 'plakat';
 mq.addEventListener && mq.addEventListener('change', () => { applyLook(); });
 try { new MutationObserver(() => { if ((S.settings.mode || 'auto') === 'auto' && document.documentElement.dataset.mode !== resolvedMode()) applyLook(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
 
@@ -292,7 +305,7 @@ function paletteCss() {
 }
 (function () { const st = document.createElement('style'); st.id = 'palettes'; st.textContent = paletteCss(); document.head.appendChild(st); document.documentElement.dataset.palette = S.settings.palette || 'smaragd'; })();
 applyLook();
-function designSettings() {   // einer der drei ruhigen Looks
+function designSettings() {   // einer der drei Looks
   const cur = skinId();
   return '<section class="card"><h2 class="label">Design</h2><div class="palgrid" role="group" aria-label="Design">' +
     SKINS.map(k => '<button class="palbtn" data-skin="' + k.id + '" aria-pressed="' + (cur === k.id) + '"><span class="palsw">' + k.c.map(x => '<i style="background:' + x + '"></i>').join('') + '</span><span>' + esc(k.name) + ' <small class="sub">' + esc(k.sub) + '</small></span></button>').join('') +

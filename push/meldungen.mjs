@@ -97,7 +97,7 @@ export function widgetDaten(J, focus) {
   const w = J.wxDay(t), ws = J.weekStats(mondayOf(t));
   return {
     v: 1, at: Date.now(), tag: t, tagText: fmtLong(t), name: J.S.name || "",
-    skin: ["smaragd", "glas", "polar"].includes(J.S.skin) ? J.S.skin : "smaragd", modus: J.S.mode || "auto",
+    skin: ["plakat", "smaragd", "ruhe"].includes(J.S.skin) ? J.S.skin : "plakat", modus: J.S.mode || "auto",
     termine: rest, morgen, los: dep ? { at: dep.at, ti: dep.b.title.slice(0, 40) } : null,
     auf: { heute: 0, ueber: 0, top: [] },   /* Aufgaben gibt es nicht mehr; bleibt leer, damit ein älteres Widget-Skript nicht abstürzt */
     wetter: w ? { hi: w.hi, lo: w.lo, tx: w.phrase, regen: w.rain } : null,

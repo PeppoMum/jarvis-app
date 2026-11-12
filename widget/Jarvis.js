@@ -7,15 +7,15 @@
 // Ohne Parameter in Scriptable geöffnet: Menü mit Notiz und Claude öffnen.
 
 const KEY = "jarvis.cfg", LAST = "jarvis.last", CACHE = "jarvis.widget", CLAUDE = "jarvis.claude";
-// Farben der drei App-Looks (wie in css/looks.css der App); das Widget nimmt den Look, der in der App eingestellt ist
+// Farben der drei App-Looks Plakat, Smaragd Ruhig, Nur das Jetzt (wie in css/looks.css der App); das Widget nimmt den Look, der in der App eingestellt ist
 const kat = (h) => ({ uni: h ? "#4F6A80" : "#9AAEC0", arbeit: h ? "#8F6420" : "#D4AA66", team: h ? "#4F7050" : "#9DB89A", alltag: h ? "#7A5C7E" : "#B99DB6" });
 const LOOKS = {
   smaragd: { l: { bg1: "#F3F2EC", bg2: "#EEEEE6", card: "#FFFFFF", ln: "#DCE3DC", tx: "#0F2A22", mu: "#52645B", ac: "#0B5D47", onac: "#FFFFFF", acs: "#DDEEE5", onacs: "#0B4A39", red: "#B3261E", ...kat(1) },
              d: { bg1: "#1B1B1A", bg2: "#151514", card: "#242423", ln: "#363633", tx: "#F2F1EC", mu: "#ADACA5", ac: "#7FD3A8", onac: "#0B2A1E", acs: "#24392F", onacs: "#A8E6C6", red: "#F28B82", ...kat(0) } },
-  glas: { l: { bg1: "#D6E8EA", bg2: "#F4E3DD", card: ["#FFFFFF", .72], ln: ["#0F3C46", .12], tx: "#10262C", mu: "#465E68", ac: "#0F5C6E", onac: "#FFFFFF", acs: "#D3EBEC", onacs: "#0B4452", red: "#B93A2A", ...kat(1) },
-          d: { bg1: "#0C2328", bg2: "#1E1515", card: ["#FFFFFF", .07], ln: ["#FFFFFF", .12], tx: "#EAF3F2", mu: "#A3B9BB", ac: "#FF9A85", onac: "#2B0E08", acs: "#3A2A2A", onacs: "#FFC9BC", red: "#FF8A7A", ...kat(0) } },
-  polar: { l: { bg1: "#F1F4F8", bg2: "#EAEFF5", card: "#FFFFFF", ln: "#D6DFEA", tx: "#0C1A2C", mu: "#556377", ac: "#0A62C2", onac: "#FFFFFF", acs: "#DCEAFB", onacs: "#0A4C96", red: "#C42B32", ...kat(1) },
-           d: { bg1: "#1A1C1E", bg2: "#141617", card: "#232527", ln: "#36393D", tx: "#EEF0F2", mu: "#A9AEB4", ac: "#7DBBFF", onac: "#071E36", acs: "#23344A", onacs: "#B5D7FF", red: "#FF8A8F", ...kat(0) } }
+  plakat: { l: { bg1: "#FFFFFF", bg2: "#FFFFFF", card: "#F2F2F2", ln: "#0A0A0A", tx: "#0A0A0A", mu: "#555555", ac: "#D7000F", onac: "#FFFFFF", acs: "#FFE3E5", onacs: "#A5000B", red: "#D7000F", ...kat(1) },
+            d: { bg1: "#0E0E0E", bg2: "#0E0E0E", card: "#1F1F1F", ln: "#F5F5F5", tx: "#F5F5F5", mu: "#B0B0B0", ac: "#FF4D57", onac: "#0A0A0A", acs: "#3A1416", onacs: "#FFB3B8", red: "#FF4D57", ...kat(0) } },
+  ruhe: { l: { bg1: "#EFEBE4", bg2: "#EFEBE4", card: "#FFFFFF", ln: "#E2DCD2", tx: "#2B2622", mu: "#5F5850", ac: "#0E6E54", onac: "#FFFFFF", acs: "#DCEFE7", onacs: "#0A4F3D", red: "#B3261E", ...kat(1) },
+          d: { bg1: "#1B1918", bg2: "#1B1918", card: "#2A2725", ln: "#3A3633", tx: "#F1ECE6", mu: "#B5ACA2", ac: "#8FDCBF", onac: "#0A2E22", acs: "#1E3A30", onacs: "#8FDCBF", red: "#E8746B", ...kat(0) } }
 };
 
 /* ---------- Einrichtung ---------- */
@@ -113,7 +113,7 @@ function uhrJetzt(d) {
 /* ---------- Widget bauen (Look „Als Nächstes“ in den Farben der App) ---------- */
 // Hell und dunkel richten sich nach dem Handy: jede Farbe hat eine helle und eine dunkle Fassung.
 function farben(d) {
-  const p = LOOKS[d && d.skin] || LOOKS.smaragd, o = {};
+  const p = LOOKS[d && d.skin] || LOOKS.plakat, o = {};
   Object.keys(p.l).forEach((k) => { const f = (x) => Array.isArray(x) ? new Color(x[0], x[1]) : new Color(x); o[k] = Color.dynamic(f(p.l[k]), f(p.d[k])); });
   return o;
 }

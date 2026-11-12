@@ -311,15 +311,49 @@ try {
   gleich(p.fehler, [], 'Keine Programmfehler im Ablauf');
   await p.context().close();
 
+  /* ===== 7b. Design und Hell/Dunkel (12.11.2026) ===== */
+  abschnitt('Design: Plakat ist Standard, Glas/Polar weg, Hell/Dunkel gilt nur für dieses Gerät');
+  p = await oeffne(browser);
+  const blick = () => p.evaluate(() => [document.documentElement.dataset.skin, document.documentElement.dataset.mode, getComputedStyle(document.body).backgroundColor]);
+  gleich(await blick(), ['plakat', 'light', 'rgb(255, 255, 255)'], 'Neu eingerichtet: Plakat, hell, weißer Hintergrund');
+  await zu(p, 'einstellungen');
+  gleich(await p.$$eval('button[data-skin]', xs => xs.map(x => x.innerText.split('\n')[0].replace(/\s+/g, ' ').trim())), ['Plakat Riesige Schrift, Schwarz, Weiß und Rot', 'Smaragd Ruhig Weich und rund, viel Luft', 'Nur das Jetzt Ruhig, Sand und Smaragd, große runde Karten'], 'Einstellungen › Design: genau Plakat, Smaragd Ruhig, Nur das Jetzt');
+  pruefe((await text(p)).includes('Gilt nur für dieses Gerät'), 'Hell/Dunkel sagt, dass es nur für dieses Gerät gilt');
+  await p.click('button[data-mode="dark"]');
+  gleich(await blick(), ['plakat', 'dark', 'rgb(14, 14, 14)'], 'Dunkel gewählt: Plakat dunkel (fast schwarz)');
+  gleich(await p.evaluate(() => localStorage.getItem('jarvis.mode')), 'dark', 'Dunkel steht auf dem Gerät');
+  await p.click('button[data-skin="ruhe"]');
+  gleich(await blick(), ['ruhe', 'dark', 'rgb(27, 25, 24)'], 'Nur das Jetzt dunkel');
+  // Konto (Firebase) nachgestellt: Hell/Dunkel darf nie ins Konto, das Design schon
+  const insKonto = await p.evaluate(async () => {
+    const calls = []; const alt = db;
+    db = { doc: (pfad) => ({ set: async (o, opt) => { calls.push([pfad, JSON.parse(JSON.stringify(o)), !!(opt && opt.merge)]); } }) };
+    S.cloudLook = { skin: 'ruhe' };
+    try { await store.setSettings({ ...S.settings, mode: 'light' }, 'mode'); await store.setSettings({ ...S.settings, skin: 'smaragd' }, 'skin'); await store.setSettings({ ...S.settings, mode: 'dark', name: 'Phil' }); } finally { db = alt; }
+    return calls.map(([pfad, o, m]) => [pfad, Object.keys(o).includes('mode'), o.skin, m]);
+  });
+  gleich(insKonto, [['meta/settings', false, 'smaragd', true], ['meta/settings', false, 'smaragd', false]], 'Ins Konto: nur Design (smaragd), nie Hell/Dunkel; Knopf Hell schreibt gar nichts ins Konto');
+  gleich(await p.evaluate(() => localStorage.getItem('jarvis.mode')), 'light', 'Hell nur auf dem Gerät gemerkt');
+  // Neustart: altes Glas wird einmalig Plakat; Hell/Dunkel kommt vom Gerät, nicht aus gespeicherten Einstellungen
+  await p.evaluate(() => { const o = local.read(); o.settings = { ...o.settings, skin: 'glas', mode: 'dark' }; delete o.settings.lookV; local.write(o); localStorage.setItem('jarvis.mode', 'light'); });
+  await p.reload(); await p.waitForFunction(() => typeof S !== 'undefined' && S.loaded);
+  gleich(await blick(), ['plakat', 'light', 'rgb(255, 255, 255)'], 'Nach Neustart: Glas → Plakat, Hell vom Gerät');
+  gleich(await p.evaluate(() => [local.read().settings.skin, local.read().settings.lookV]), ['plakat', 2], 'Umstellung auf Plakat ist gespeichert (nur einmal)');
+  await p.evaluate(() => { const o = local.read(); o.settings = { ...o.settings, skin: 'smaragd', lookV: 2 }; local.write(o); });
+  await p.reload(); await p.waitForFunction(() => typeof S !== 'undefined' && S.loaded);
+  gleich(await blick(), ['smaragd', 'light', 'rgb(243, 242, 236)'], 'Wer danach Smaragd wählt, behält Smaragd');
+  gleich(p.fehler, [], 'Keine Programmfehler beim Design-Wechsel');
+  await p.context().close();
+
   /* ===== 8. Aussehen: alle Looks, hell und dunkel, Handy und PC ===== */
-  abschnitt('Lesbarkeit und Rand: 3 Looks × hell/dunkel × Handy/PC');
+  abschnitt('Lesbarkeit und Rand: 3 Looks (Plakat, Smaragd, Nur das Jetzt) × hell/dunkel × Handy/PC');
   for (const [breite, hoehe2, handy, name] of [[360, 760, true, 'Handy'], [1280, 900, false, 'PC']]) for (const dunkel of [false, true]) {
     const q = await oeffne(browser, { breite, hoehe: hoehe2, dunkel, handy });
     await q.evaluate(() => { window.showToast = () => {}; S.toast = null; });
     await q.waitForTimeout(100);   // erster Blick ist gemerkt; dann so tun, als wäre seitdem umgeplant worden, damit „Neu im Plan“ mitgeprüft wird
     await q.evaluate(() => { S.gcal = S.gcal.filter(g => g.gid !== 'g-zahn').concat([{ gid: 'g-neu', title: 'Training Torwart', date: '2026-11-12', start: '18:00', end: '19:30', area: null, place: null, calName: null }]); render(); });
     pruefe(await gibt(q, '.slimneu .slimchg') === 2, name + (dunkel ? ' dunkel' : ' hell') + ': Karte „Neu im Plan“ ist für die Lesbarkeits-Prüfung da');
-    for (const skin of ['smaragd', 'glas', 'polar']) {
+    for (const skin of ['plakat', 'smaragd', 'ruhe']) {
       await q.evaluate(k => { S.settings = { ...S.settings, skin: k }; applyLook(); render(); }, skin);
       for (const r of ['heute', 'woche', 'eingang', 'einstellungen']) {
         await zu(q, r); await q.evaluate(() => window.scrollTo(0, 0));

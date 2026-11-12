@@ -16,7 +16,14 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Outfit:wght@500..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Outfit:wght@500..700&family=Inter+Tight:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400..800&display=swap">
+<script>
+/* Gleiches Design wie in Jarvis (Plakat, Smaragd Ruhig, Nur das Jetzt) und Hell/Dunkel wie auf diesem Gerät eingestellt.
+   Beides liest der Timer aus dem Gerät (Jarvis merkt es sich dort); ohne Jarvis-Stand gilt Plakat und das Gerät. */
+(function () { var h = document.documentElement, s = 'plakat', m = '';
+  try { var c = JSON.parse(localStorage.getItem('jarvis.look') || 'null'); if (c && /^(plakat|smaragd|ruhe)$/.test(c.skin)) s = c.skin; m = localStorage.getItem('jarvis.mode') || ''; } catch (e) {}
+  h.dataset.skin = s; if (m === 'light' || m === 'dark') h.dataset.mode = m; })();
+</script>
 <link rel="stylesheet" href="fokus.css">
 </head>
 <body>

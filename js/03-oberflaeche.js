@@ -823,7 +823,7 @@ function pageSettings() {
   const nEv = byType('event').length, nNotes = slimNotes().length;
   return '<div class="listpage"><div><h1 class="page">Einstellungen</h1></div>' +
     designSettings() +
-    '<section class="card"><h2 class="label">Hell / Dunkel</h2><div class="seg" role="group" aria-label="Modus">' + [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([v, l]) => '<button data-mode="' + v + '" aria-pressed="' + ((s.mode || 'auto') === v) + '">' + l + '</button>').join('') + '</div><p class="sub" style="margin-top:8px">„Automatisch“ folgt der Einstellung deines Geräts.</p></section>' +
+    '<section class="card"><h2 class="label">Hell / Dunkel</h2><div class="seg" role="group" aria-label="Modus">' + [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([v, l]) => '<button data-mode="' + v + '" aria-pressed="' + ((s.mode || 'auto') === v) + '">' + l + '</button>').join('') + '</div><p class="sub" style="margin-top:8px">Gilt nur für dieses Gerät. „Automatisch“ folgt der Einstellung des Geräts.</p></section>' +
     '<section class="card"><h2 class="label">Über dich</h2><form data-form="slimme" style="display:flex;flex-direction:column;gap:10px"><div class="formgrid">' +
       '<label class="field"><span>Wie soll Jarvis dich nennen?</span><input name="name" value="' + esc(s.name || '') + '" autocomplete="off" maxlength="40"></label>' +
       '<label class="field"><span>Arbeit pro Woche (Std.)</span><input name="workHours" type="number" min="0" max="60" step="0.5" inputmode="decimal" value="' + esc(s.workHours ?? 20) + '"></label></div>' +
