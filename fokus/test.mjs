@@ -431,6 +431,18 @@ await check('Home-Bildschirm: Name „Fokus“, eigenes Symbol, eigener Bereich 
   const man = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.webmanifest'), 'utf8'));
   eq([man.name, man.scope, man.start_url, man.display], ['Fokus', './', './', 'standalone'], 'Manifest');
   for (const ic of man.icons.concat([{ src: 'icons/icon-180.png', sizes: '180x180' }])) eq(fs.readFileSync(path.join(DIR, ic.src)).readUInt32BE(16), Number(ic.sizes.split('x')[0]), 'Symbolgröße ' + ic.src);
+  // Symbol 3 „Restzeit in Rot“ (12.11.2026): weiß, Restzeit-Bogen rot, Rest grau, Krone und Zeiger schwarz
+  const farben = await p.evaluate(async (liste) => {
+    const out = {};
+    for (const [src, n] of liste) {
+      const img = new Image(); img.src = src + '?' + Date.now(); await img.decode();
+      const c = document.createElement('canvas'); c.width = c.height = n; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+      const f = (a, b) => { const [r, g, bl] = x.getImageData(Math.round(a * n / 512), Math.round(b * n / 512), 1, 1).data; return r + g + bl > 720 ? 'weiß' : r + g + bl < 120 ? 'schwarz' : r > 180 && g < 60 && bl < 60 ? 'rot' : r > 180 && Math.abs(r - g) < 20 && Math.abs(r - bl) < 20 ? 'grau' : 'anders'; };
+      out[src] = [f(12, 12), f(396, 268), f(256, 408), f(116, 268), f(256, 93), f(256, 268)];
+    }
+    return out;
+  }, man.icons.map(i => [i.src, Number(i.sizes.split('x')[0])]).concat([['icons/icon-180.png', 180]]));
+  for (const [src, v] of Object.entries(farben)) eq(v, ['weiß', 'rot', 'rot', 'grau', 'schwarz', 'schwarz'], 'Symbol ' + src + ': weiß, Restzeit rot, Rest grau, Krone und Zeiger schwarz');
   eq(await p.locator('meta[name=apple-mobile-web-app-title]').getAttribute('content'), 'Fokus', 'Name auf dem iPhone');
   const scope = await p.evaluate(async () => (await navigator.serviceWorker.ready).scope); ok(scope.endsWith('/jarvis-app/fokus/'), 'Helfer nur für fokus/: ' + scope);
   await p.evaluate(() => new Promise(r => setTimeout(r, 800)));
