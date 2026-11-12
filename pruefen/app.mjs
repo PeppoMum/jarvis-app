@@ -369,6 +369,72 @@ try {
   for (const [src, v] of Object.entries(sym)) pruefe(v[0] === Number((src.match(/(\d+)\.png$/) || [])[1]), src + ': Bildgröße stimmt (' + v[0] + ' px)');
   await p.context().close();
 
+  /* ===== 7d. Stunden je Woche (12.11.2026): geplant gegen gemacht, Verlauf ab 26.10. ===== */
+  abschnitt('Stunden: Arbeit, Uni, Ehrenamt, Sonstiges, zwei Summen, Verlauf ab 26.10.');
+  p = await oeffne(browser);
+  await p.evaluate(() => {
+    const G = (gid, title, date, start, end, o) => Object.assign({ gid, title, date, start, end, area: null, place: null, calName: null }, o || {});
+    const C = { calName: 'U13 Trainer-Cockpit', cockpit: true, area: 'team' };
+    S.gcal = S.gcal.concat([
+      // Woche ab 26.10. (so wie in Phils Kalender)
+      G('a1', 'Vorlesung Stochastik 2', '2026-10-26', '14:00', '16:00'),
+      G('a2', 'Übung Stochastik 2', '2026-10-27', '10:00', '12:00'), G('a3', 'Forschungswerkstatt Bi-Wi I: Unterrichtsforschung', '2026-10-27', '12:00', '14:00'), G('a4', 'Einführung in die Grundschulpädagogik', '2026-10-27', '17:30', '19:30'),
+      G('a5', 'Zug nach Essen', '2026-10-28', '06:00', '06:50'), G('a6', 'Arbeit', '2026-10-28', '07:00', '15:30'), G('a7', 'Trainingsplanung', '2026-10-28', '15:45', '16:15'), G('a8', 'Training U13', '2026-10-28', '17:00', '18:30', C), G('a9', 'Kochen', '2026-10-28', '19:00', '19:30'), G('a10', 'Haushalt', '2026-10-28', '19:30', '20:00'),
+      G('a11', 'Arbeit · Essen', '2026-10-29', '09:05', '13:45'), G('a12', 'N2 Vorbereitung Praxissemester', '2026-10-29', '12:00', '14:00'), G('a13', 'Arbeit · Homeoffice', '2026-10-29', '15:15', '16:20'),
+      G('a14', 'Arbeit', '2026-10-30', '07:00', '11:15'), G('a15', 'Classroom Management?! - oder wie wir Schule als emotional sicheren Ort gestalten', '2026-10-30', '12:00', '14:00'), G('a16', 'Trainingsplanung', '2026-10-30', '14:00', '14:30'), G('a17', 'Blocker', '2026-10-30', '19:00', '22:00'), G('a18', 'App-Design', '2026-10-30', '22:00', '23:00'),
+      G('a19', 'Lernzeit', '2026-10-31', '11:00', '12:30'), G('a20', 'App-Design', '2026-10-31', '14:00', '16:30'), G('a21', 'Haushalt', '2026-10-31', '16:45', '17:45'),
+      G('a22', 'Spiel U13 gegen Marl', '2026-11-01', '09:00', '10:30', C), G('a23', 'Lernzeit', '2026-11-01', '11:00', '12:30'), G('a24', 'App-Design', '2026-11-01', '14:00', '16:30'),
+      // Woche ab 2.11.
+      G('b1', 'Arbeit', '2026-11-02', '08:00', '12:00'), G('b2', 'Vorlesung Stochastik 2', '2026-11-02', '14:00', '16:00'), G('b3', 'Fitness', '2026-11-02', '18:00', '19:00'), G('b4', 'Rückfahrt (Auto)', '2026-11-02', '12:00', '12:40'),
+      // laufende Woche ab 9.11. (heute ist Mi 11.11., 9 Uhr)
+      G('c1', 'Arbeit', '2026-11-09', '07:00', '15:30'), G('c2', 'Lernsession', '2026-11-10', '16:00', '18:00'), G('c3', 'Arbeit', '2026-11-11', '07:00', '10:00')
+    ]);
+    // Fahrt nur in Jarvis (nie in Google), darf nirgends zählen
+    S.items.push({ id: 'f-1', type: 'event', title: 'Fahrt nach Essen (Auto)', date: '2026-11-09', start: '06:15', end: '07:00', area: 'arbeit', createdAt: new Date().toISOString() });
+    const o = local.read(); o.items = Object.fromEntries(S.items.map(i => [i.id, i]));
+    o.wochenplan = { weeks: { '2026-11-02': { h: { arbeit: 6, uni: 2, ehrenamt: 1.5, sonst: 1, pflicht: 9.5, alles: 10.5 }, date: '2026-11-02', at: '2026-11-02T08:00:00.000Z' } } };
+    local.write(o); S._wpWatch = false; stdWatch(); render();
+  });
+  const wochen = await p.evaluate(() => stdData().map(x => [x.mon, x.kw, x.done, x.plan, x.gemerkt]));
+  const r2 = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v * 100) / 100]));
+  gleich(wochen.map(w => [w[0], w[1]]), [['2026-10-26', 44], ['2026-11-02', 45], ['2026-11-09', 46]], 'Drei Wochen ab 26.10. (KW 44, 45, 46)');
+  gleich(r2(wochen[0][2]), { arbeit: 18, uni: 15, ehrenamt: 4, sonst: 8, pflicht: 35.25, alles: 43.25 }, 'Woche 26.10.: Arbeit 18 (8,5 Std. am Stück − 30 Min. Pause), Uni 15 mit Lernzeit, Ehrenamt 4, Sonstiges 8; Zug und Blocker zählen nicht; Überschneidung Do zählt einmal');
+  gleich(r2(wochen[0][3]), r2(wochen[0][2]), 'Woche 26.10.: ohne gemerkten Plan zeigt „geplant“ den Kalender-Stand');
+  gleich(wochen[0][4], null, 'Woche 26.10.: als „nicht gemerkt“ markiert');
+  gleich(r2(wochen[1][2]), { arbeit: 4, uni: 2, ehrenamt: 0, sonst: 1, pflicht: 6, alles: 7 }, 'Woche 2.11.: gemacht (Rückfahrt zählt nicht, Fitness = Sonstiges)');
+  gleich(wochen[1][3], { arbeit: 6, uni: 2, ehrenamt: 1.5, sonst: 1, pflicht: 9.5, alles: 10.5 }, 'Woche 2.11.: geplant kommt aus dem gemerkten Montags-Plan');
+  gleich(r2(wochen[2][2]), { arbeit: 10, uni: 2, ehrenamt: 0, sonst: 0, pflicht: 12, alles: 12 }, 'Laufende Woche: gemacht bis jetzt (Mo 8 Std. Arbeit, Di Lernsession, heute 7–9 Uhr), Jarvis-Fahrt zählt nicht');
+  gleich(r2(wochen[2][3]), { arbeit: 15, uni: 5.25, ehrenamt: 1.5, sonst: 0.5, pflicht: 21.75, alles: 22.25 }, 'Laufende Woche: geplant = ganze Woche im Kalender (Zug zählt nicht)');
+  // Seite
+  await p.evaluate(() => { S.calView = 'stunden'; go('woche'); }); await p.waitForTimeout(100);
+  gleich(await p.$$eval('.seg button', xs => xs.map(x => x.textContent + ':' + x.getAttribute('aria-pressed'))), ['Woche:false', 'Monat:false', 'Stunden:true'], 'Woche-Seite hat den Schalter „Stunden“');
+  let st = await text(p);
+  gleich(await p.$eval('#h-stdnow', e => e.textContent), 'Diese Woche · KW 46', 'Karte „Diese Woche“ mit Kalenderwoche');
+  gleich(await p.$$eval('.stdnow .stdbig', xs => xs.map(x => x.innerText.replace(/\s+/g, ' ').trim())), ['Arbeit + Uni + Ehrenamt 12 von 21,8 Std. geplant', 'Alles mit Sonstigem 12 von 22,3 Std. geplant'], 'Die zwei Summen groß: gemacht von geplant');
+  gleich(await p.$$eval('.stdnow .stdrow', xs => xs.map(x => x.innerText.replace(/\s+/g, ' ').trim())), ['Arbeit 10 / 15 Std.', 'Uni 2 / 5,3 Std.', 'Ehrenamt 0 / 1,5 Std.', 'Sonstiges 0 / 0,5 Std.'], 'Bereiche dieser Woche: gemacht / geplant');
+  gleich(await p.$$eval('.stdlist .stdwh', xs => xs.map(x => x.innerText.replace(/\s+/g, ' ').trim())), ['KW 46 · 9. Nov – 15. Nov · läuft 12 / 12 Std.', 'KW 45 · 2. Nov – 8. Nov 6 / 7 Std.', 'KW 44 · 26. Okt – 1. Nov 35,3 / 43,3 Std.'], 'Verlauf: alle Wochen bis 26.10., neueste oben');
+  const kw44 = await p.$$eval('.stdlist .stdwk', xs => xs[2].innerText.replace(/\s+/g, ' '));
+  pruefe(kw44.includes('Arbeit 18 von 18 · Uni 15 von 15 · Ehrenamt 4 von 4 · Sonstiges 8 von 8') && kw44.includes('Plan von damals nicht gemerkt'), 'KW 44: jeder Bereich und ehrlicher Hinweis', kw44);
+  const kw45 = await p.$$eval('.stdlist .stdwk', xs => xs[1].innerText.replace(/\s+/g, ' '));
+  pruefe(kw45.includes('Arbeit 4 von 6') && kw45.includes('Ehrenamt 0 von 1,5') && kw45.includes('Arbeit + Uni + Ehrenamt 6 von 9,5 · Alles 7 von 10,5') && !kw45.includes('nicht gemerkt'), 'KW 45: geplant aus dem Montags-Plan', kw45);
+  gleich(await p.$$eval('.stdvgl .stdrow', xs => xs.slice(0, 3).map(x => x.innerText.replace(/\s+/g, ' ').trim())), ['Arbeit + Uni + Ehrenamt Vorwoche 6 Schnitt 20,6', 'Alles mit Sonstigem Vorwoche 7 Schnitt 25,1', 'Arbeit Vorwoche 4 Schnitt 11'], 'Vergleich: Vorwoche und Schnitt der fertigen Wochen');
+  // Plan der Woche merken (sonst macht das die App im Hintergrund, sobald der Kalender geladen ist)
+  await p.evaluate(async () => { S.stdHist = { from: STD_START, to: '2026-11-16', list: S.gcal.slice(), at: Date.now() }; S.gcalPartial = ''; await stdRemember(); });
+  gleich(await p.evaluate(() => { const w = local.read().wochenplan.weeks; return [Object.keys(w).sort(), w['2026-11-09'].h.pflicht, w['2026-11-09'].date]; }), [['2026-11-02', '2026-11-09'], 21.75, '2026-11-11'], 'Plan dieser Woche ist gespeichert (21,75 Std.), Montags-Plan der Vorwoche bleibt');
+  await p.evaluate(async () => { S.gcal = S.gcal.filter(g => g.gid !== 'g-spiel'); S.stdHist.list = S.gcal.slice(); await stdRemember(); render(); });
+  gleich(await p.evaluate(() => [stdData()[2].plan.ehrenamt, local.read().wochenplan.weeks['2026-11-09'].h.ehrenamt, stdData()[2].kal.ehrenamt]), [1.5, 1.5, 0], 'Spiel abgesagt: geplant bleibt 1,5 Std. Ehrenamt (nach Montag wird der Plan nicht mehr überschrieben), im Kalender jetzt 0');
+  st = await text(p, '.stdnow');
+  pruefe(st.includes('Plan gemerkt am Mi, 11. Nov') && st.includes('jetzt im Kalender: 20,8 Std.'), 'Hinweis: wann der Plan gemerkt wurde und was jetzt im Kalender steht', st);
+  // Am Montag zieht der Plan noch mit
+  await p.evaluate(async () => { const w = local.read(); w.wochenplan.weeks['2026-11-09'].date = '2026-11-09'; local.write(w); S.wochenplan = w.wochenplan; });
+  await p.clock.setFixedTime(new Date('2026-11-09T07:30:00+01:00'));
+  gleich(await p.evaluate(async () => { await stdRemember(); return local.read().wochenplan.weeks['2026-11-09'].h.ehrenamt; }), 0, 'Am Montag selbst wird der Plan noch nachgezogen');
+  await p.clock.setFixedTime(new Date(JETZT));
+  // Lernzeit zählt jetzt auch auf der normalen Woche-Seite als Uni
+  gleich(await p.evaluate(() => [blockCat({ kind: 'google', title: 'Lernsession', start: '10:00', end: '11:00' }).cat, countsForLoad({ kind: 'google', title: 'Lernzeit', start: '10:00', end: '11:00' })]), ['uni', true], 'Lernzeit/Lernsession = Uni, zählt auch für die Wochen-Ampel');
+  gleich(p.fehler, [], 'Keine Programmfehler in der Stunden-Übersicht');
+  await p.context().close();
+
   /* ===== 8. Aussehen: alle Looks, hell und dunkel, Handy und PC ===== */
   abschnitt('Lesbarkeit und Rand: 3 Looks (Plakat, Smaragd, Nur das Jetzt) × hell/dunkel × Handy/PC');
   for (const [breite, hoehe2, handy, name] of [[360, 760, true, 'Handy'], [1280, 900, false, 'PC']]) for (const dunkel of [false, true]) {
@@ -379,8 +445,10 @@ try {
     pruefe(await gibt(q, '.slimneu .slimchg') === 2, name + (dunkel ? ' dunkel' : ' hell') + ': Karte „Neu im Plan“ ist für die Lesbarkeits-Prüfung da');
     for (const skin of ['plakat', 'smaragd', 'ruhe']) {
       await q.evaluate(k => { S.settings = { ...S.settings, skin: k }; applyLook(); render(); }, skin);
-      for (const r of ['heute', 'woche', 'eingang', 'einstellungen']) {
-        await zu(q, r); await q.evaluate(() => window.scrollTo(0, 0));
+      for (const r of ['heute', 'woche', 'stunden', 'eingang', 'einstellungen']) {
+        await q.evaluate(v => { S.calView = v; }, r === 'stunden' ? 'stunden' : 'woche');
+        await zu(q, r === 'stunden' ? 'woche' : r); await q.evaluate(() => window.scrollTo(0, 0));
+        if (r === 'stunden') pruefe(await gibt(q, '.stdnow .stdbig') === 2 && await gibt(q, '.stdlist .stdwk') === 3, name + ' ' + (dunkel ? 'dunkel' : 'hell') + ' ' + skin + ': Stunden-Seite ist da (2 Summen, 3 Wochen)');
         const wo = name + ' ' + (dunkel ? 'dunkel' : 'hell') + ' ' + skin + ' ' + r;
         const breit = await q.evaluate(() => document.documentElement.scrollWidth - innerWidth);
         pruefe(breit <= 0, wo + ': nichts ragt seitlich über den Rand', breit);

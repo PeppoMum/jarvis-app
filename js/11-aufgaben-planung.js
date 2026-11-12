@@ -405,7 +405,7 @@ async function cancelToday(id) {
 }
 
 /* ----- Monatsansicht ----- */
-const viewSeg = () => '<div class="seg" role="group" aria-label="Ansicht"><button data-jt="calview" data-v="woche" aria-pressed="' + (S.calView !== 'monat') + '">Woche</button><button data-jt="calview" data-v="monat" aria-pressed="' + (S.calView === 'monat') + '">Monat</button></div>';
+const viewSeg = () => '<div class="seg" role="group" aria-label="Ansicht"><button data-jt="calview" data-v="woche" aria-pressed="' + (S.calView !== 'monat' && S.calView !== 'stunden') + '">Woche</button><button data-jt="calview" data-v="monat" aria-pressed="' + (S.calView === 'monat') + '">Monat</button><button data-jt="calview" data-v="stunden" aria-pressed="' + (S.calView === 'stunden') + '">Stunden</button></div>';
 function pageMonth() {
   const t = todayISO(), m0 = S.month || t.slice(0, 7) + '-01', y = Number(m0.slice(0, 4)), mo = Number(m0.slice(5, 7));
   const last = isoDate(new Date(y, mo, 0)), end = addDays(mondayOf(last), 6), cells = [];
@@ -500,7 +500,7 @@ document.addEventListener('click', async (ev) => {
     case 'rpok': await applyReplan(); break;
     case 'rpcancel': await cancelToday(id); break;
     case 'rpclose': S.replan = null; render(); break;
-    case 'calview': S.calView = el.dataset.v; if (S.calView === 'monat') S.month = curWeek().slice(0, 7) + '-01'; render(); fetchGcal(); break;
+    case 'calview': S.calView = el.dataset.v; if (S.calView === 'monat') S.month = curWeek().slice(0, 7) + '-01'; render(); fetchGcal(); if (S.calView === 'stunden') stdTick(); break;
     case 'mnav': { const n = Number(el.dataset.n), m0 = S.month || todayISO().slice(0, 7) + '-01'; S.month = n === 0 ? todayISO().slice(0, 7) + '-01' : isoDate(new Date(Number(m0.slice(0, 4)), Number(m0.slice(5, 7)) - 1 + n, 1)); render(); fetchGcal(); break; }
     case 'mday': S.week = mondayOf(el.dataset.d); S.calView = 'woche'; render(); fetchGcal(); break;
   }

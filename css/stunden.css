@@ -1,0 +1,31 @@
+/* Stunden-Übersicht (Woche › Stunden). Plakat: Schwarz/Weiß, Rot nur für „geplant“. Keine Schatten, kein Querscrollen. */
+.stdgrid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.stdgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.stdgrid .stdlauf{grid-column:1 / -1}}
+.stdgrid .card{min-width:0}
+.stdbigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:6px 0 14px}
+.stdbig{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stdbig small{font-size:13px;font-weight:700;color:var(--tx)}
+.stdbig b{font-family:var(--disp,inherit);font-size:56px;line-height:1;font-weight:900;letter-spacing:-.04em;color:var(--tx)}
+.stdbig span{font-size:14px;color:var(--mu)}
+.stdbig .stdbar{margin-top:6px}
+.stdrows{display:flex;flex-direction:column;gap:10px}
+.stdrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:baseline}
+.stdrow .n{font-weight:700;color:var(--tx);min-width:0;overflow-wrap:anywhere}
+.stdrow .v{color:var(--mu);font-size:14px;white-space:nowrap}
+.stdrow .v b{color:var(--tx);font-size:16px}
+.stdrow .stdbar{grid-column:1 / -1}
+.stdrow.cmp{grid-template-columns:minmax(0,1fr) auto auto;border-bottom:1px solid var(--ln);padding-bottom:6px}
+.stdbar{position:relative;display:block;height:10px;background:var(--soft);overflow:visible}
+.stdbar i{position:absolute;left:0;top:0;bottom:0;background:var(--tx)}
+.stdbar b{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:var(--ac)}
+.stdnote{margin:10px 0 0;font-size:13px}
+.stdlist{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column}
+.stdwk{padding:12px 0;border-top:2px solid var(--tx);display:flex;flex-direction:column;gap:6px}
+.stdwk:first-child{border-top:0}
+.stdwh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;align-items:baseline}
+.stdwh span{color:var(--tx);min-width:0}
+.stdtot{color:var(--mu)!important;white-space:nowrap}
+.stdtot b{font-family:var(--disp,inherit);font-size:26px;font-weight:900;letter-spacing:-.03em;color:var(--tx)}
+.stdwk.cur .stdwh b{color:var(--ac)}
+.stdcats{margin:0;font-size:14px;color:var(--tx);line-height:1.5;overflow-wrap:anywhere}
+.stdcats small{color:var(--mu);font-size:13px}
