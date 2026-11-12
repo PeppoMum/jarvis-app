@@ -91,3 +91,23 @@ input::placeholder{color:var(--mu);opacity:1}
 .ctl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-radius:20px 20px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-shadow:0 -8px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:10px;max-height:80dvh;overflow:auto}
 .sheet form input{flex:1;min-width:0}
+
+/* ===== Designs wie in Jarvis (12.11.2026). data-skin und data-mode setzt index.html aus dem, was Jarvis auf diesem Gerät gemerkt hat.
+   Smaragd ist die Grundlage oben; hier nur, damit „Hell“/„Dunkel“ aus Jarvis auch gegen das Gerät gilt. ===== */
+html[data-mode="light"]{--bg:#F3F2EC;--card:#FFFFFF;--soft:#E6ECE6;--ln:#D3DCD4;--tx:#0F2A22;--mu:#4E6157;--ac:#0B5D47;--onac:#FFFFFF;--acs:#DDEEE5;--onacs:#0B4A39;--pause:#9A5B13;--pauses:#F6E7D2;--over:#A3361F;color-scheme:light}
+html[data-mode="dark"]{--bg:#171716;--card:#20201F;--soft:#2A2A28;--ln:#3A3A37;--tx:#F2F1EC;--mu:#B3B2AB;--ac:#7FD3A8;--onac:#0B2A1E;--acs:#24392F;--onacs:#A8E6C6;--pause:#F0B46A;--pauses:#3A2E1E;--over:#FF9B85;color-scheme:dark}
+html[data-skin="plakat"]{--bg:#FFFFFF;--card:#FFFFFF;--soft:#F2F2F2;--ln:#D4D4D4;--tx:#0A0A0A;--mu:#555555;--ac:#D7000F;--onac:#FFFFFF;--acs:#FFE3E5;--onacs:#A5000B;--pause:#8A5A00;--pauses:#FFF1D6;--over:#A5000B;--font:"Inter Tight",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Inter Tight",-apple-system,sans-serif;--r:0px;--rb:999px;color-scheme:light}
+@media (prefers-color-scheme:dark){html[data-skin="plakat"]:not([data-mode="light"]){--bg:#0E0E0E;--card:#161616;--soft:#222222;--ln:#3A3A3A;--tx:#F5F5F5;--mu:#B0B0B0;--ac:#FF4D57;--onac:#0A0A0A;--acs:#3A1416;--onacs:#FFB3B8;--pause:#F0B46A;--pauses:#3A2E1E;--over:#FF8A8F;color-scheme:dark}}
+html[data-skin="plakat"][data-mode="dark"]{--bg:#0E0E0E;--card:#161616;--soft:#222222;--ln:#3A3A3A;--tx:#F5F5F5;--mu:#B0B0B0;--ac:#FF4D57;--onac:#0A0A0A;--acs:#3A1416;--onacs:#FFB3B8;--pause:#F0B46A;--pauses:#3A2E1E;--over:#FF8A8F;color-scheme:dark}
+html[data-skin="ruhe"]{--bg:#EFEBE4;--card:#FFFFFF;--soft:#E6E0D6;--ln:#D9D1C5;--tx:#2B2622;--mu:#5F5850;--ac:#0E6E54;--onac:#FFFFFF;--acs:#DCEFE7;--onacs:#0A4F3D;--pause:#8F5A14;--pauses:#F4E6CF;--over:#A3361F;--font:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Plus Jakarta Sans",-apple-system,sans-serif;--r:28px;--rb:999px;color-scheme:light}
+@media (prefers-color-scheme:dark){html[data-skin="ruhe"]:not([data-mode="light"]){--bg:#1B1918;--card:#2A2725;--soft:#242120;--ln:#3A3633;--tx:#F1ECE6;--mu:#B5ACA2;--ac:#8FDCBF;--onac:#0A2E22;--acs:#1E3A30;--onacs:#8FDCBF;--pause:#F0B46A;--pauses:#3A2E1E;--over:#FF9B85;color-scheme:dark}}
+html[data-skin="ruhe"][data-mode="dark"]{--bg:#1B1918;--card:#2A2725;--soft:#242120;--ln:#3A3633;--tx:#F1ECE6;--mu:#B5ACA2;--ac:#8FDCBF;--onac:#0A2E22;--acs:#1E3A30;--onacs:#8FDCBF;--pause:#F0B46A;--pauses:#3A2E1E;--over:#FF9B85;color-scheme:dark}
+/* Plakat: fette Schrift, eckige Karten, runde Knöpfe (wie am Handy in Jarvis) */
+html[data-skin="plakat"] .card{border:2px solid var(--tx);box-shadow:none}
+html[data-skin="plakat"] h1{font-weight:900;letter-spacing:-.03em}
+html[data-skin="plakat"] .run .big{font-weight:900;letter-spacing:-.04em}
+html[data-skin="plakat"] .run .ph{font-weight:900}
+html[data-skin="plakat"] .go{font-weight:900;letter-spacing:0}
+html[data-skin="plakat"] .bar i{border-radius:0}
+html[data-skin="ruhe"] .card{box-shadow:0 1px 2px rgba(43,38,34,.06),0 8px 24px rgba(43,38,34,.06)}
+html[data-skin="ruhe"] .run .big{font-weight:800}

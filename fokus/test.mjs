@@ -437,6 +437,18 @@ await check('Home-Bildschirm: Name „Fokus“, eigenes Symbol, eigener Bereich 
   await p.c.setOffline(true); await p.reload(); eq(await T(p, '[data-act=start]'), 'Start', 'startet ohne Netz');
   await p.c.close();
 });
+await check('Design und Hell/Dunkel wie in Jarvis auf diesem Gerät (Plakat ist Standard)', async () => {
+  const p = await fresh();
+  const look = () => p.evaluate(() => [document.documentElement.dataset.skin, document.documentElement.dataset.mode || '', getComputedStyle(document.body).backgroundColor]);
+  eq(JSON.stringify(await look()), JSON.stringify(['plakat', '', 'rgb(255, 255, 255)']), 'ohne Jarvis-Stand: Plakat hell (weiß)');
+  for (const [skin, mode, bg] of [['plakat', 'dark', 'rgb(14, 14, 14)'], ['ruhe', 'light', 'rgb(239, 235, 228)'], ['ruhe', 'dark', 'rgb(27, 25, 24)'], ['smaragd', 'dark', 'rgb(23, 23, 22)'], ['glas', 'light', 'rgb(255, 255, 255)']]) {
+    await p.evaluate(([s, m]) => { localStorage.setItem('jarvis.look', JSON.stringify({ skin: s })); localStorage.setItem('jarvis.mode', m); }, [skin, mode]);
+    await p.reload();
+    const want = [skin === 'glas' ? 'plakat' : skin, mode, bg];
+    eq(JSON.stringify(await look()), JSON.stringify(want), skin + ' ' + mode);
+  }
+  noErr(p); await p.c.close();
+});
 await check('Keine KI, keine fremden Adressen außer Schrift und Google-Anmeldung', () => {
   const src = ['index.html', 'app.js', 'engine.js', 'sound.js', 'sync.js', 'sw.js', 'fokus.css'].map(f => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n');
   for (const bad of ['anthropic', 'openai', 'claude.ai', 'api.claude', 'XMLHttpRequest', 'sendBeacon']) ok(!src.toLowerCase().includes(bad), 'gefunden: ' + bad);

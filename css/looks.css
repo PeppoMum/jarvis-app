@@ -1,14 +1,14 @@
-/* Jarvis-App: drei ruhige Looks (Smaragd Ruhig, Glas, Polar) über dem Aufbau der Rüstung. Phil, 29.10.2026.
+/* Jarvis-App: Looks über dem Aufbau der Seiten. Seit 12.11.2026: Plakat (Standard), Smaragd Ruhig, Nur das Jetzt (Glas und Polar raus, Phil).
    Gilt nur, wenn <html data-skin="…"> gesetzt ist; ohne data-skin bleibt alles Rüstung. Farben: hell + dunkel, Ampelfarben bleiben. */
 html:root[data-design="jarvis"][data-skin="smaragd"]{--bg:#F3F2EC;--card:#FFFFFF;--soft:#EDF1EC;--ln:#DCE3DC;--tx:#0F2A22;--mu:#52645B;--ac:#0B5D47;--onac:#FFFFFF;--acs:#DDEEE5;--onacs:#0B4A39;--nav:#FFFFFF;--navtx:#0F2A22;--navon:#0B5D47;--onnavon:#F8E7C9;--jstr:#B3261E;--onjstr:#FFFFFF;--jglow:11,93,71;--jtrk:#EDF1EC;--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--font:"DM Sans",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Outfit","DM Sans",sans-serif;color-scheme:light}
 @media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="smaragd"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#171716;--card:#20201F;--soft:#292927;--ln:#363633;--tx:#F2F1EC;--mu:#ADACA5;--ac:#7FD3A8;--onac:#0B2A1E;--acs:#24392F;--onacs:#A8E6C6;--nav:#1B1B1A;--navtx:#F2F1EC;--navon:#7FD3A8;--onnavon:#0B2A1E;--jstr:#C0392B;--onjstr:#FFFFFF;--jglow:127,211,168;--jtrk:#292927;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}}
 html:root[data-design="jarvis"][data-skin="smaragd"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="smaragd"][data-mode="dark"]{--bg:#171716;--card:#20201F;--soft:#292927;--ln:#363633;--tx:#F2F1EC;--mu:#ADACA5;--ac:#7FD3A8;--onac:#0B2A1E;--acs:#24392F;--onacs:#A8E6C6;--nav:#1B1B1A;--navtx:#F2F1EC;--navon:#7FD3A8;--onnavon:#0B2A1E;--jstr:#C0392B;--onjstr:#FFFFFF;--jglow:127,211,168;--jtrk:#292927;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}
-html:root[data-design="jarvis"][data-skin="glas"]{--bg:#E9F1F1;--card:rgba(255,255,255,.82);--soft:rgba(255,255,255,.6);--ln:rgba(15,60,70,.14);--tx:#10262C;--mu:#465E68;--ac:#0F5C6E;--onac:#FFFFFF;--acs:#D3EBEC;--onacs:#0B4452;--nav:rgba(255,255,255,.75);--navtx:#10262C;--navon:#0F5C6E;--onnavon:#FFFFFF;--jstr:#B93A2A;--onjstr:#FFFFFF;--jglow:15,92,110;--jtrk:rgba(255,255,255,.55);--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--gl1:rgba(15,92,110,.20);--gl2:rgba(232,102,79,.16);--font:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Urbanist","Plus Jakarta Sans",sans-serif;color-scheme:light}
-@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="glas"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#08161A;--card:rgba(20,42,48,.82);--soft:rgba(255,255,255,.06);--ln:rgba(255,255,255,.12);--tx:#EAF3F2;--mu:#A3B9BB;--ac:#FF9A85;--onac:#2B0E08;--acs:#3A2A2A;--onacs:#FFC9BC;--nav:rgba(10,28,33,.78);--navtx:#EAF3F2;--navon:#FF9A85;--onnavon:#2B0E08;--jstr:#C9483A;--onjstr:#FFFFFF;--jglow:255,154,133;--jtrk:rgba(255,255,255,.04);--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;--gl1:rgba(47,160,180,.20);--gl2:rgba(255,138,115,.14);color-scheme:dark}}
-html:root[data-design="jarvis"][data-skin="glas"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="glas"][data-mode="dark"]{--bg:#08161A;--card:rgba(20,42,48,.82);--soft:rgba(255,255,255,.06);--ln:rgba(255,255,255,.12);--tx:#EAF3F2;--mu:#A3B9BB;--ac:#FF9A85;--onac:#2B0E08;--acs:#3A2A2A;--onacs:#FFC9BC;--nav:rgba(10,28,33,.78);--navtx:#EAF3F2;--navon:#FF9A85;--onnavon:#2B0E08;--jstr:#C9483A;--onjstr:#FFFFFF;--jglow:255,154,133;--jtrk:rgba(255,255,255,.04);--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;--gl1:rgba(47,160,180,.20);--gl2:rgba(255,138,115,.14);color-scheme:dark}
-html:root[data-design="jarvis"][data-skin="polar"]{--bg:#F1F4F8;--card:#FFFFFF;--soft:#E8EEF5;--ln:#D6DFEA;--tx:#0C1A2C;--mu:#556377;--ac:#0A62C2;--onac:#FFFFFF;--acs:#DCEAFB;--onacs:#0A4C96;--nav:#FFFFFF;--navtx:#0C1A2C;--navon:#0C1A2C;--onnavon:#FFFFFF;--jstr:#C42B32;--onjstr:#FFFFFF;--jglow:10,98,194;--jtrk:#E8EEF5;--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--font:"Manrope",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Sora","Manrope",sans-serif;color-scheme:light}
-@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="polar"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#161819;--card:#1F2123;--soft:#282B2E;--ln:#36393D;--tx:#EEF0F2;--mu:#A9AEB4;--ac:#7DBBFF;--onac:#071E36;--acs:#23344A;--onacs:#B5D7FF;--nav:#1A1C1E;--navtx:#EEF0F2;--navon:#7DBBFF;--onnavon:#071E36;--jstr:#C9353B;--onjstr:#FFFFFF;--jglow:125,187,255;--jtrk:#282B2E;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}}
-html:root[data-design="jarvis"][data-skin="polar"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="polar"][data-mode="dark"]{--bg:#161819;--card:#1F2123;--soft:#282B2E;--ln:#36393D;--tx:#EEF0F2;--mu:#A9AEB4;--ac:#7DBBFF;--onac:#071E36;--acs:#23344A;--onacs:#B5D7FF;--nav:#1A1C1E;--navtx:#EEF0F2;--navon:#7DBBFF;--onnavon:#071E36;--jstr:#C9353B;--onjstr:#FFFFFF;--jglow:125,187,255;--jtrk:#282B2E;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}
+html:root[data-design="jarvis"][data-skin="plakat"]{--bg:#FFFFFF;--card:#FFFFFF;--soft:#F2F2F2;--ln:#D4D4D4;--tx:#0A0A0A;--mu:#555555;--ac:#D7000F;--onac:#FFFFFF;--acs:#FFE3E5;--onacs:#A5000B;--nav:#FFFFFF;--navtx:#0A0A0A;--navon:#0A0A0A;--onnavon:#FFFFFF;--jstr:#D7000F;--onjstr:#FFFFFF;--jglow:215,0,15;--jtrk:#F2F2F2;--uni:#4A5866;--arbeit:#7A5A1E;--team:#3F6142;--alltag:#6B5170;--font:"Inter Tight","Inter",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Inter Tight","Inter",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="plakat"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#0E0E0E;--card:#161616;--soft:#222222;--ln:#3A3A3A;--tx:#F5F5F5;--mu:#B0B0B0;--ac:#FF4D57;--onac:#0A0A0A;--acs:#3A1416;--onacs:#FFB3B8;--nav:#0E0E0E;--navtx:#F5F5F5;--navon:#F5F5F5;--onnavon:#0A0A0A;--jstr:#FF4D57;--onjstr:#0A0A0A;--jglow:255,77,87;--jtrk:#222222;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}}
+html:root[data-design="jarvis"][data-skin="plakat"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="plakat"][data-mode="dark"]{--bg:#0E0E0E;--card:#161616;--soft:#222222;--ln:#3A3A3A;--tx:#F5F5F5;--mu:#B0B0B0;--ac:#FF4D57;--onac:#0A0A0A;--acs:#3A1416;--onacs:#FFB3B8;--nav:#0E0E0E;--navtx:#F5F5F5;--navon:#F5F5F5;--onnavon:#0A0A0A;--jstr:#FF4D57;--onjstr:#0A0A0A;--jglow:255,77,87;--jtrk:#222222;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}
+html:root[data-design="jarvis"][data-skin="ruhe"]{--bg:#EFEBE4;--card:#FFFFFF;--soft:#F8F5F0;--ln:#E2DCD2;--tx:#2B2622;--mu:#5F5850;--ac:#0E6E54;--onac:#FFFFFF;--acs:#DCEFE7;--onacs:#0A4F3D;--nav:#FFFFFF;--navtx:#2B2622;--navon:#0E6E54;--onnavon:#FFFFFF;--jstr:#B3261E;--onjstr:#FFFFFF;--jglow:14,110,84;--jtrk:#F8F5F0;--uni:#4F6A80;--arbeit:#8F6420;--team:#4F7050;--alltag:#7A5C7E;--font:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;--disp:"Plus Jakarta Sans",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){html:root[data-design="jarvis"][data-skin="ruhe"]:not([data-theme="light"]):not([data-mode="light"]){--bg:#1B1918;--card:#2A2725;--soft:#242120;--ln:#3A3633;--tx:#F1ECE6;--mu:#B5ACA2;--ac:#8FDCBF;--onac:#0A2E22;--acs:#1E3A30;--onacs:#8FDCBF;--nav:#242120;--navtx:#F1ECE6;--navon:#8FDCBF;--onnavon:#0A2E22;--jstr:#E8746B;--onjstr:#1B1918;--jglow:143,220,191;--jtrk:#242120;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}}
+html:root[data-design="jarvis"][data-skin="ruhe"][data-theme="dark"]:not([data-mode="light"]),html:root[data-design="jarvis"][data-skin="ruhe"][data-mode="dark"]{--bg:#1B1918;--card:#2A2725;--soft:#242120;--ln:#3A3633;--tx:#F1ECE6;--mu:#B5ACA2;--ac:#8FDCBF;--onac:#0A2E22;--acs:#1E3A30;--onacs:#8FDCBF;--nav:#242120;--navtx:#F1ECE6;--navon:#8FDCBF;--onnavon:#0A2E22;--jstr:#E8746B;--onjstr:#1B1918;--jglow:143,220,191;--jtrk:#242120;--uni:#9AAEC0;--arbeit:#D4AA66;--team:#9DB89A;--alltag:#B99DB6;color-scheme:dark}
 /* ===== Gemeinsam für alle drei: Rüstung-Schmuck zurücknehmen (Aufbau der Seiten bleibt gleich) ===== */
 html[data-design="jarvis"][data-skin]{--r-ctl:10px;--r-card:16px;--cutp:none;--cuts:none}
 html[data-design="jarvis"][data-skin] body{background-image:none}
@@ -95,18 +95,67 @@ html[data-design="jarvis"][data-skin="smaragd"] .nums a{border-color:transparent
 html[data-design="jarvis"][data-skin="smaragd"] .jhead .nums a:nth-child(2){border-color:var(--jstr)!important}
 html[data-design="jarvis"][data-skin="smaragd"] .top{border-bottom-color:transparent;box-shadow:0 1px 0 var(--ln)}
 
-/* ===== 2 Glas: halb durchsichtige Flächen auf sanftem Farbschimmer ===== */
-html[data-design="jarvis"][data-skin="glas"]{--r-ctl:12px;--r-card:20px}
-html[data-design="jarvis"][data-skin="glas"] body{background-image:radial-gradient(900px 520px at 95% -5%,var(--gl1),transparent 70%),radial-gradient(800px 520px at -5% 100%,var(--gl2),transparent 70%);background-attachment:fixed}
-html[data-design="jarvis"][data-skin="glas"] :is(.top,.bottomnav,.card,.nums a,.next,.sheet){-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
-html[data-design="jarvis"][data-skin="glas"] .brand .dot{background:linear-gradient(135deg,var(--navon),var(--jstr))}
+/* ===== Smaragd Ruhig: weich, viel Luft, Schatten statt Rahmen ===== */
+html[data-design="jarvis"][data-skin="smaragd"]{--r-ctl:12px;--r-card:18px}
+html[data-design="jarvis"][data-skin="smaragd"] .brand .dot{border-radius:4px;transform:rotate(45deg);width:11px;height:11px}
+html[data-design="jarvis"][data-skin="smaragd"] .nav a{border-radius:99px}
+html[data-design="jarvis"][data-skin="smaragd"] :is(.card,.subj,.day,.stat,.nowbar,.minifocus,.morelist a,.catrow,.next,.sheet,section.card.jplan){border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
+html[data-design="jarvis"][data-skin="smaragd"] .nums a{border-color:transparent!important;box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04)}
+html[data-design="jarvis"][data-skin="smaragd"] .jhead .nums a:nth-child(2){border-color:var(--jstr)!important}
+html[data-design="jarvis"][data-skin="smaragd"] .top{border-bottom-color:transparent;box-shadow:0 1px 0 var(--ln)}
 
-/* ===== 3 Polar: klare Linien, ein Hauch Leuchten ===== */
-html[data-design="jarvis"][data-skin="polar"]{--r-ctl:8px;--r-card:12px}
-html[data-design="jarvis"][data-skin="polar"] .brand .dot{background:transparent;border:2.5px solid var(--ac);box-shadow:0 0 0 3px var(--acs),0 0 12px rgba(var(--jglow),.35)}
-html[data-design="jarvis"][data-skin="polar"] .nav a[aria-current="page"]{box-shadow:0 0 14px rgba(var(--jglow),.3)}
-html[data-design="jarvis"][data-skin="polar"] .nums b{text-shadow:0 0 18px rgba(var(--jglow),.25)}
-html[data-design="jarvis"][data-skin="polar"] .jhead .nums a:nth-child(2) b{text-shadow:none}
-html[data-design="jarvis"][data-skin="polar"] section.card.jplan,html[data-design="jarvis"][data-skin="polar"] .next{border-top:2px solid var(--ac)}
-html[data-design="jarvis"][data-skin="polar"] .jtrack .jnow{box-shadow:0 0 10px rgba(var(--jglow),.6)}
-@media(max-width:760px){html[data-design="jarvis"][data-skin="polar"] section.card.jplan{border-top:0}html[data-design="jarvis"][data-skin="polar"] .bottomnav a[aria-current="page"]{background:transparent;color:var(--ac);box-shadow:inset 0 2px 0 var(--ac);border-radius:6px}}
+
+/* ===== Plakat (Standard seit 12.11.2026, Phil): riesige, fette Schrift, nur Schwarz, Weiß und Rot.
+   Am PC alles eckig, am Handy runde Knöpfe (Vorschlag 4b). ===== */
+html[data-design="jarvis"][data-skin="plakat"]{--r-ctl:0px;--r-card:0px}
+html[data-design="jarvis"][data-skin="plakat"] :is(.card,.subj,.day,.stat,.nowbar,.minifocus,.morelist a,.catrow,.next,.sheet,section.card.jplan){border:2px solid var(--tx);box-shadow:none}
+html[data-design="jarvis"][data-skin="plakat"] .nums a{border:2px solid var(--tx)!important}
+html[data-design="jarvis"][data-skin="plakat"] .top{border-bottom:4px solid var(--tx)}
+html[data-design="jarvis"][data-skin="plakat"] .brand{font-weight:900;letter-spacing:-.01em;text-transform:uppercase}
+html[data-design="jarvis"][data-skin="plakat"] .brand .dot{border-radius:0;background:var(--ac)}
+html[data-design="jarvis"][data-skin="plakat"] .nav a{font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+html[data-design="jarvis"][data-skin="plakat"] :is(.greet,.jhead .greet){font-weight:900;letter-spacing:-.045em;line-height:.95;font-size:clamp(48px,6vw,92px)}
+html[data-design="jarvis"][data-skin="plakat"] h1.page{font-weight:900;letter-spacing:-.035em;font-size:48px}
+html[data-design="jarvis"][data-skin="plakat"] :is(.label,.subh2){font-weight:900;color:var(--tx);letter-spacing:.08em}
+html[data-design="jarvis"][data-skin="plakat"] :is(.datel,.jhead .datel){font-weight:800;color:var(--tx)}
+html[data-design="jarvis"][data-skin="plakat"] .topmeta .clock{font-weight:900;font-size:24px;letter-spacing:-.02em}
+html[data-design="jarvis"][data-skin="plakat"] .next .label{color:var(--ac)}
+html[data-design="jarvis"][data-skin="plakat"] .next .t{font-size:30px;font-weight:900;letter-spacing:-.03em;line-height:1.05}
+html[data-design="jarvis"][data-skin="plakat"] .next .cd{background:var(--tx);color:var(--bg);border-radius:0}
+html[data-design="jarvis"][data-skin="plakat"] .btn{font-weight:700}
+html[data-design="jarvis"][data-skin="plakat"] :is(.btn.primary,.composer .send){font-weight:900}
+html[data-design="jarvis"][data-skin="plakat"] .jtrack .jb{background:var(--soft);border-radius:0}
+html[data-design="jarvis"][data-skin="plakat"] .jtrack .jb:not(.free){border-left:3px solid var(--tx)}
+html[data-design="jarvis"][data-skin="plakat"] .jtrack .jb b{font-weight:900}
+html[data-design="jarvis"][data-skin="plakat"] .jtrack .jb.nx{box-shadow:inset 0 0 0 3px var(--ac)}
+html[data-design="jarvis"][data-skin="plakat"] .jtrack .jb.free{border-radius:0}
+html[data-design="jarvis"][data-skin="plakat"] .jnx i{background:var(--ac);color:var(--onac);border-radius:0}
+@media(max-width:760px){
+  html[data-design="jarvis"][data-skin="plakat"]{--r-ctl:999px}
+  html[data-design="jarvis"][data-skin="plakat"] :is(.greet,.jhead .greet){font-size:46px}
+  html[data-design="jarvis"][data-skin="plakat"] h1.page{font-size:36px}
+  html[data-design="jarvis"][data-skin="plakat"] section.card.jplan{border:0}
+  html[data-design="jarvis"][data-skin="plakat"] .bottomnav{border:2px solid var(--tx);border-radius:999px;box-shadow:none;background:var(--nav)}
+  html[data-design="jarvis"][data-skin="plakat"] .bottomnav a{border-radius:999px;font-weight:800}
+  html[data-design="jarvis"][data-skin="plakat"] .next .cd{border-radius:999px}
+  html[data-design="jarvis"][data-skin="plakat"] .jnx i{border-radius:999px}
+}
+
+/* ===== Nur das Jetzt (12.11.2026): ruhig, weich, Sand mit Smaragd-Grün, große runde Karten ===== */
+html[data-design="jarvis"][data-skin="ruhe"]{--r-ctl:999px;--r-card:28px}
+html[data-design="jarvis"][data-skin="ruhe"] :is(.card,.subj,.day,.stat,.nowbar,.minifocus,.morelist a,.catrow,.next,.sheet,section.card.jplan){border-color:transparent;box-shadow:0 1px 2px rgba(43,38,34,.06),0 8px 24px rgba(43,38,34,.06)}
+html[data-design="jarvis"][data-skin="ruhe"] .nums a{border-color:transparent!important}
+html[data-design="jarvis"][data-skin="ruhe"] .top{border-bottom-color:transparent}
+html[data-design="jarvis"][data-skin="ruhe"] .brand .dot{background:var(--ac)}
+html[data-design="jarvis"][data-skin="ruhe"] :is(.greet,.jhead .greet){font-weight:800;letter-spacing:-.025em}
+html[data-design="jarvis"][data-skin="ruhe"] .next{padding:22px 24px}
+html[data-design="jarvis"][data-skin="ruhe"] .next .label{align-self:flex-start;background:var(--acs);color:var(--onacs);border-radius:99px;padding:4px 12px;letter-spacing:.02em;text-transform:none}
+html[data-design="jarvis"][data-skin="ruhe"] .next .t{font-size:28px;font-weight:800}
+html[data-design="jarvis"][data-skin="ruhe"] .jtrack .jb{border-radius:14px}
+html[data-design="jarvis"][data-skin="ruhe"] .jtrack .jb:not(.free){border-left:0}
+html[data-design="jarvis"][data-skin="ruhe"] .jtrack .jb.free{border-radius:14px}
+html[data-design="jarvis"][data-skin="ruhe"] .jplan .jtrack .jb.ride{background:transparent;outline:2px dashed var(--ln);outline-offset:-2px}
+@media(max-width:760px){
+  html[data-design="jarvis"][data-skin="ruhe"] .bottomnav{border:0;border-radius:999px}
+  html[data-design="jarvis"][data-skin="ruhe"] .bottomnav a{border-radius:999px}
+}
