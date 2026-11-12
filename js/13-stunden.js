@@ -2,7 +2,7 @@
 /* Jarvis-App – 13-stunden.js: Stunden je Woche, geplant gegen gemacht, mit Verlauf ab der Woche vom 26.10.2026.
    Bereiche: Arbeit, Uni, Ehrenamt (alles rund um Fußball, Scouting …), Sonstiges. Dazu zwei Summen:
    „Arbeit + Uni + Ehrenamt“ und „Alles“ (mit Sonstigem).
-   - Fahrten und Blocker zählen nie. Was sich überschneidet, zählt einmal. Lernzeit/Lernsession ist Uni (UNI_HINT in 09-zeiten.js).
+   - Fahrten und Blocker zählen nie. Was sich überschneidet, zählt einmal. Lernzeit/Lernsession ist Uni (UNI_HINT in 09-zeiten.js, seit PR #23).
    - Arbeit wie auf der Arbeit-Seite: über 6 Std. am Stück gehen 30 Min. Pause ab (über 9 Std. 45 Min.), soweit keine Lücke dafür da ist.
    - Gemacht = was im Kalender steht und schon vorbei ist.
    - Geplant = wie die Woche am Montag im Kalender stand. Das merkt sich die App von selbst (meta/wochenplan, keine Pflege).
