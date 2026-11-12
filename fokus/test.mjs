@@ -441,7 +441,7 @@ await check('Design und Hell/Dunkel wie in Jarvis auf diesem Gerät (Plakat ist 
   const p = await fresh();
   const look = () => p.evaluate(() => [document.documentElement.dataset.skin, document.documentElement.dataset.mode || '', getComputedStyle(document.body).backgroundColor]);
   eq(JSON.stringify(await look()), JSON.stringify(['plakat', '', 'rgb(255, 255, 255)']), 'ohne Jarvis-Stand: Plakat hell (weiß)');
-  for (const [skin, mode, bg] of [['plakat', 'dark', 'rgb(14, 14, 14)'], ['ruhe', 'light', 'rgb(239, 235, 228)'], ['ruhe', 'dark', 'rgb(27, 25, 24)'], ['smaragd', 'dark', 'rgb(23, 23, 22)'], ['glas', 'light', 'rgb(255, 255, 255)']]) {
+  for (const [skin, mode, bg] of [['plakat', 'dark', 'rgb(0, 0, 0)'], ['ruhe', 'light', 'rgb(239, 235, 228)'], ['ruhe', 'dark', 'rgb(27, 25, 24)'], ['smaragd', 'dark', 'rgb(23, 23, 22)'], ['glas', 'light', 'rgb(255, 255, 255)']]) {
     await p.evaluate(([s, m]) => { localStorage.setItem('jarvis.look', JSON.stringify({ skin: s })); localStorage.setItem('jarvis.mode', m); }, [skin, mode]);
     await p.reload();
     const want = [skin === 'glas' ? 'plakat' : skin, mode, bg];

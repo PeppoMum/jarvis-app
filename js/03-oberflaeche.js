@@ -25,6 +25,7 @@ function render() {
   const selStart = active && 'selectionStart' in active ? active.selectionStart : null;
 
   const app = $('#app');
+  document.documentElement.dataset.route = S.route;   // Plakat blendet auf Heute die kleine Uhr oben aus (dort steht sie riesig)
   const notes = slimNotes().length;
   const badge = id => id === 'eingang' && notes ? ' <span class="badge">' + notes + '</span>' : '';
   const topIds = ROUTES.filter(r => r.top && r.id !== 'mehr').map(r => r.id), cur = menuOf(S.route);
@@ -198,12 +199,19 @@ function pageToday() {
   if (w) lines.push('Wetter: ' + w.hi + '° / ' + w.lo + '°, ' + w.phrase + (w.rain >= 40 ? ', Regen ' + w.rain + ' %' : ''));
   if (al) lines.push('Warnung: ' + al.title + (al.until ? ' (bis ' + al.until + ')' : ''));
   bdaysOn(t).forEach(x => lines.push('Geburtstag: ' + x.name + (x.age ? ' (' + x.age + ')' : '')));
-  const head = '<section class="jhead" aria-label="Überblick"><div class="jhl"><div class="datel">' + esc(fmtLong(t)) + '</div><h1 class="greet">' + gh + '</h1>' +
+  // Plakat (12.11.2026): oben kurzes Datum + Kalenderwoche, darunter die Uhrzeit riesig (nur dort sichtbar, siehe css/looks.css)
+  const dd = new Date(t + 'T12:00:00'), wd = ['SO', 'MO', 'DI', 'MI', 'DO', 'FR', 'SA'][dd.getDay()];
+  const kwD = new Date(Date.UTC(dd.getFullYear(), dd.getMonth(), dd.getDate())); kwD.setUTCDate(kwD.getUTCDate() + 4 - (kwD.getUTCDay() || 7));
+  const kw = Math.ceil(((kwD - Date.UTC(kwD.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+  const ptop = '<div class="ptop"><span>' + wd + ' ' + dd.getDate() + '.' + (dd.getMonth() + 1) + '.</span><span class="pkw">KW ' + kw + '</span></div><div class="pclock">' + esc(nowHM()) + '</div>';
+  const head = '<section class="jhead" aria-label="Überblick"><div class="jhl">' + ptop + '<div class="datel">' + esc(fmtLong(t)) + '</div><h1 class="greet">' + gh + '</h1>' +
     (lines.length ? '<div class="slimlines">' + lines.map(l => '<p class="sub">' + esc(l) + '</p>').join('') + '</div>' : '') + '</div></section>';
 
   // Als Nächstes, mit Losfahr-Zeit
   const nx = slimNext(), dep = nx ? slimDeparture(nx) : null;
-  const nextHtml = nx ? '<div class="next"><div class="row" style="justify-content:space-between"><span class="label" style="margin:0">Als Nächstes</span><span class="cd">' + esc(countdown(nx)) + '</span></div>' +
+  // Läuft der Termin schon, heißt es wie im Entwurf „Jetzt · noch … “
+  const nxRun = nx && nx.date === t && nx.start && nx.end && hmToMin(nx.start) <= nowM && hmToMin(nx.end) > nowM;
+  const nextHtml = nx ? '<div class="next' + (nxRun ? ' run' : '') + '"><div class="row" style="justify-content:space-between"><span class="label" style="margin:0">' + (nxRun ? 'Jetzt' : 'Als Nächstes') + '</span><span class="cd">' + esc(nxRun ? 'noch ' + fmtMin(hmToMin(nx.end) - nowM) : countdown(nx)) + '</span></div>' +
       '<div class="t">' + esc(nx.title) + '</div><div class="meta">' + (nx.date !== t ? esc(fmtShort(nx.date)) + ' · ' : '') + esc(nx.start || 'ganztägig') + (nx.end ? '–' + esc(nx.end) : '') + (nx.place ? ' · ' + esc(nx.place) : '') + '</div>' +
       (dep ? '<div class="meta slimdep">' + esc(dep) + '</div>' : '') + '</div>'
     : '<div class="next"><span class="label" style="margin:0">Als Nächstes</span><div class="meta">In den nächsten 14 Tagen steht nichts im Kalender.</div></div>';
@@ -217,7 +225,8 @@ function pageToday() {
     const endM = hmToMin(e.end || e.start), stM = hmToMin(e.start);
     const cls = e.start && endM != null && endM < nowV ? ' past' : (stM != null && stM <= nowV && endM >= nowV ? ' now' : '');
     const sub = [isTransit(e) ? 'Fahrt' : '', e.kind === 'class' ? 'Vorlesung' : e.kind === 'google' ? (e.calName ? calLabel(e) + '-Kalender' : 'Google Kalender') : (e.area ? AREAS[e.area] : ''), e.end ? 'bis ' + e.end : '', e.place, wxText(e)].filter(Boolean).join(' · ');
-    return '<button class="tli' + cls + (isTransit(e) ? ' trip' : '') + '"' + blkAttr(e) + '><span class="tm">' + esc(e.start || 'ganzt.') + '</span><span class="bar ' + (e.area ? 'a-' + esc(e.area) : '') + '"></span>' +
+    const isNx = !tmw && nx && e.id === nx.id && e.date === nx.date;
+    return '<button class="tli' + cls + (isTransit(e) ? ' trip' : '') + (isNx ? ' nx' : '') + '"' + blkAttr(e) + '><span class="tm">' + esc(e.start || 'ganzt.') + '</span><span class="bar ' + (e.area ? 'a-' + esc(e.area) : '') + '"></span>' +
       '<span><span class="tt"><span>' + esc(e.title) + '</span></span><br><span class="ts">' + esc(sub) + '</span></span><span class="cal">' + calBadge(e) + '</span></button>';
   };
   const tl = tlRows.length ? '<div class="tl">' + tlRows.map(r => r.free ? freeRow(r) : blockRow(r.e)).join('') + '</div>'
@@ -249,7 +258,9 @@ function pageTodayOld() {
   const wxT = wxDay(t); const wxLine = wxT ? ' · ' + wxT.hi + '° / ' + wxT.lo + '°, ' + wxT.phrase + (wxT.rain >= 40 ? ' (' + wxT.rain + ' % Regen)' : '') : '';
   const nx = nextEvent();
 
-  const nextHtml = nx ? '<div class="next"><div class="row" style="justify-content:space-between"><span class="label" style="margin:0">Als Nächstes</span><span class="cd">' + esc(countdown(nx)) + '</span></div>' +
+  // Läuft der Termin schon, heißt es wie im Entwurf „Jetzt · noch … “
+  const nxRun = nx && nx.date === t && nx.start && nx.end && hmToMin(nx.start) <= nowM && hmToMin(nx.end) > nowM;
+  const nextHtml = nx ? '<div class="next' + (nxRun ? ' run' : '') + '"><div class="row" style="justify-content:space-between"><span class="label" style="margin:0">' + (nxRun ? 'Jetzt' : 'Als Nächstes') + '</span><span class="cd">' + esc(nxRun ? 'noch ' + fmtMin(hmToMin(nx.end) - nowM) : countdown(nx)) + '</span></div>' +
       '<div class="t">' + esc(nx.title) + '</div><div class="meta">' + (nx.date !== t ? esc(fmtShort(nx.date)) + ' · ' : '') + esc(nx.start || 'ganztägig') + (nx.end ? '–' + esc(nx.end) : '') + (nx.place ? ' · ' + esc(nx.place) : '') + '</div></div>'
     : '<div class="next"><span class="label" style="margin:0">Als Nächstes</span><div class="meta">Kein Termin geplant.</div></div>';
 
@@ -267,7 +278,8 @@ function pageTodayOld() {
       const cls = e.start && endM != null && endM < nowV ? ' past' : (stM != null && stM <= nowV && endM >= nowV ? ' now' : '');
       const fcs = isTeamBlock(e) && S.team && S.team.focus && S.team.focus[weekKey(e.date)];
       const sub = [isTransit(e) ? 'Fahrt' : '', e.kind === 'class' ? 'Vorlesung' : e.kind === 'google' ? (e.calName ? calLabel(e) + '-Kalender' : 'Google Kalender') : (e.area ? AREAS[e.area] : ''), e.end ? 'bis ' + e.end : '', e.place, fcs ? 'Schwerpunkt: ' + fcs : '', wxText(e)].filter(Boolean).join(' · ');
-      return '<button class="tli' + cls + (isTransit(e) ? ' trip' : '') + '"' + blkAttr(e) + '><span class="tm">' + esc(e.start || 'ganzt.') + '</span><span class="bar ' + (e.area ? 'a-' + esc(e.area) : '') + '"></span>' +
+      const isNx = !tmw && nx && e.id === nx.id && e.date === nx.date;
+    return '<button class="tli' + cls + (isTransit(e) ? ' trip' : '') + (isNx ? ' nx' : '') + '"' + blkAttr(e) + '><span class="tm">' + esc(e.start || 'ganzt.') + '</span><span class="bar ' + (e.area ? 'a-' + esc(e.area) : '') + '"></span>' +
         '<span><span class="tt"><span>' + esc(e.title) + '</span></span><br><span class="ts">' + esc(sub) + '</span></span>' +
         '<span class="cal">' + calBadge(e) + '</span></button>';
     })()).join('') + '</div>' : (tmw ? '<p class="empty">Für morgen steht noch nichts im Kalender.</p>' : '<p class="empty">Heute stehen keine Termine an. Notier z. B. „Training Mi 18 Uhr“.</p>');
@@ -441,6 +453,7 @@ const lastStopRead = () => { try { const o = JSON.parse(localStorage.getItem('ja
 const lastStopSet = () => { try { localStorage.setItem('jarvis.laststop', JSON.stringify({ d: todayISO(), at: Date.now() })); } catch (e) {} };
 const hmOf = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 setInterval(() => {
+  const hm = nowHM(); document.querySelectorAll('.pclock,.top .clock').forEach(el => { if (el.textContent !== hm) el.textContent = hm; });   // Uhrzeit auf die Minute genau
   document.querySelectorAll('[data-pclock]').forEach(el => { el.textContent = mmss(Date.now() - Number(el.dataset.pclock)); });
   if (S.focus && S.focus.mode === 'track') { document.querySelectorAll('[data-ftot]').forEach(el => { el.textContent = hmDur(catNowMs(el.dataset.ftot)); }); document.querySelectorAll('[data-fpau]').forEach(el => { el.textContent = pauNote(el.dataset.fpau); }); }
 }, 1000);

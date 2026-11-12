@@ -301,11 +301,11 @@ div.today{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:
   .topmeta > span:first-child{display:none}
   main{padding-bottom:200px}
   .c-side .composer,.c-side .chatlog,.c-side .chatlabel{display:none}
-  .bottomnav{display:flex;position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--nav);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:6px 6px;justify-content:space-around;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .bottomnav{display:flex;position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:max(8px,calc(env(safe-area-inset-bottom,0px) - 16px));z-index:30;background:var(--nav);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:6px 6px;justify-content:space-around;box-shadow:0 8px 24px rgba(0,0,0,.12)}
   .bottomnav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:var(--navtx);text-decoration:none;min-width:56px;min-height:44px;padding:4px 6px;border-radius:20px;flex:1}
   .bottomnav a svg{width:21px;height:21px;stroke-width:1.7}
   .bottomnav a[aria-current="page"]{color:var(--onnavon);background:var(--navon)}
-  .phonecomposer{display:block;position:fixed;left:0;right:0;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:29;padding-block:8px 0;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));background:linear-gradient(to bottom,transparent,var(--bg) 30%)}
+  .phonecomposer{display:block;position:fixed;left:0;right:0;bottom:calc(76px + max(0px, env(safe-area-inset-bottom,0px) - 24px));z-index:29;padding-block:8px 0;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));background:linear-gradient(to bottom,transparent,var(--bg) 30%)}
   .phonecomposer .status{min-height:0}
 }
 
@@ -849,7 +849,7 @@ html{-webkit-tap-highlight-color:transparent;background:var(--bg)}
 @supports (height:100dvh){.sheet{max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px))}}
 @media(max-width:760px){
   /* Fläche unter Eingabe und Menüleiste bis ganz nach unten (Home-Leiste), damit dort kein Inhalt durchscheint */
-  .phonecomposer{bottom:0;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,transparent,var(--bg) 22px)}
+  .phonecomposer{bottom:0;padding-bottom:calc(76px + max(0px, env(safe-area-inset-bottom,0px) - 24px));background:linear-gradient(to bottom,transparent,var(--bg) 22px)}
   main{padding-bottom:calc(200px + env(safe-area-inset-bottom,0px))}
   /* Zahl am Eingang als kleines Schild am Symbol statt zweiter Zeile */
   .bottomnav a{position:relative}

@@ -110,7 +110,9 @@ try {
   abschnitt('Heute: nächster Termin, Losfahren, Tagesplan, Notizen, nichts zum Abhaken');
   await zu(p, 'heute');
   let t = await text(p);
-  pruefe(t.includes('Guten Morgen, Phil.'), 'Begrüßung mit Namen', t.slice(0, 120));
+  pruefe((await p.$eval('.jhead .greet', e => e.textContent)).includes('Guten Morgen, Phil.'), 'Begrüßung mit Namen (bei Smaragd und Nur das Jetzt zu sehen)');
+  gleich(await p.evaluate(() => [...document.querySelectorAll('.pclock,.ptop span,.jhead .greet')].map(e => [e.textContent, !!e.getClientRects().length])), [['MI 11.11.', true], ['KW 46', true], ['09:00', true], ['Guten Morgen, Phil.', false]], 'Plakat: Datum kurz, KW 46, Uhrzeit riesig, keine Begrüßung (wie im Entwurf)');
+  gleich(await p.$eval('.pclock', e => parseFloat(getComputedStyle(e).fontSize) >= 100), true, 'Plakat: Uhrzeit mindestens 100 px groß');
   pruefe(t.includes('Wetter: 12° / 5°, bewölkt, Regen 60 %'), 'Eine Zeile Wetter mit Regen');
   pruefe(t.includes('Geburtstag: Mama'), 'Geburtstag als Zeile');
   const nx = await text(p, '.jnext-ph');
@@ -300,7 +302,7 @@ try {
   await zu(p, 'heute');
   nx2 = await text(p, '.jnext-ph');
   pruefe(nx2.includes('Spätestens 09:05 Uhr losfahren'), 'Neue Fahrzeit wirkt sofort (10:15 − 60 − 10 = 09:05)', nx2);
-  pruefe((await text(p)).includes('Guten Morgen, Philipp.'), 'Neuer Name in der Begrüßung');
+  pruefe((await p.$eval('.jhead .greet', e => e.textContent)).includes('Guten Morgen, Philipp.'), 'Neuer Name in der Begrüßung');
   await zu(p, 'woche');
   pruefe((await text(p, '.pagehead')).includes('Arbeit 4 von 15 Std. geplant'), 'Woche rechnet mit den neuen 15 Std.');
 
@@ -320,7 +322,7 @@ try {
   gleich(await p.$$eval('button[data-skin]', xs => xs.map(x => x.innerText.split('\n')[0].replace(/\s+/g, ' ').trim())), ['Plakat Riesige Schrift, Schwarz, Weiß und Rot', 'Smaragd Ruhig Weich und rund, viel Luft', 'Nur das Jetzt Ruhig, Sand und Smaragd, große runde Karten'], 'Einstellungen › Design: genau Plakat, Smaragd Ruhig, Nur das Jetzt');
   pruefe((await text(p)).includes('Gilt nur für dieses Gerät'), 'Hell/Dunkel sagt, dass es nur für dieses Gerät gilt');
   await p.click('button[data-mode="dark"]');
-  gleich(await blick(), ['plakat', 'dark', 'rgb(14, 14, 14)'], 'Dunkel gewählt: Plakat dunkel (fast schwarz)');
+  gleich(await blick(), ['plakat', 'dark', 'rgb(0, 0, 0)'], 'Dunkel gewählt: Plakat dunkel (schwarz, wie in Phils Style-Guide)');
   gleich(await p.evaluate(() => localStorage.getItem('jarvis.mode')), 'dark', 'Dunkel steht auf dem Gerät');
   await p.click('button[data-skin="ruhe"]');
   gleich(await blick(), ['ruhe', 'dark', 'rgb(27, 25, 24)'], 'Nur das Jetzt dunkel');
@@ -362,6 +364,20 @@ try {
         pruefe(breit <= 0, wo + ': nichts ragt seitlich über den Rand', breit);
         const schlecht = await q.evaluate(kontrastFunde);
         pruefe(!schlecht.length, wo + ': alle Schrift gut lesbar (Kontrast ≥ 4,5)', schlecht.slice(0, 3));
+        if (skin === 'plakat' && r === 'heute') {
+          // wie im Entwurf (Design-Board „4b Plakat rund“ / „4 Plakat Computer“)
+          const L = await q.evaluate(() => { const box = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return b.width && b.height ? { x: Math.round(b.left), y: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom) } : null; };
+            const nav = document.querySelector('.bottomnav'), nb = nav.getBoundingClientRect();
+            return { uhr: box('.pclock'), plan: box('.jplan'), liste: box('.jplan .tl'), leiste: box('.jplan .jtrack'), next: box('.jnext-ph .next'), kleineUhr: box('.top .clock'),
+              nxRot: !!document.querySelector('.jplan .tli.nx .tm') && getComputedStyle(document.querySelector('.jplan .tli.nx .tm')).color === getComputedStyle(document.documentElement).getPropertyValue('--ac').trim().replace(/^#(..)(..)(..)$/, (_, a, b, c) => 'rgb(' + [a, b, c].map(h => parseInt(h, 16)).join(', ') + ')'),
+              nextRahmen: getComputedStyle(document.querySelector('.jnext-ph .next')).borderTopWidth, navAbstand: Math.round(innerHeight - nb.bottom), navSichtbar: !!nb.height }; });
+          pruefe(L.uhr && L.next && L.liste && !L.leiste, wo + ': riesige Uhr, „Als Nächstes“ und Tagesliste sichtbar, keine Zeitleiste', L);
+          pruefe(!L.kleineUhr, wo + ': kleine Uhr oben ausgeblendet (sie steht ja riesig da)', L.kleineUhr);
+          pruefe(L.nxRot, wo + ': Uhrzeit des nächsten Termins in der Liste rot');
+          gleich(L.nextRahmen, '0px', wo + ': „Als Nächstes“ ohne Kasten');
+          if (name === 'PC') pruefe(!!(L.uhr && L.plan && L.next) && L.uhr.r <= L.plan.x && L.next.r <= L.plan.x && L.plan.y <= L.uhr.b, wo + ': Uhr und „Als Nächstes“ links, Tagesliste rechts daneben', L);
+          else pruefe(L.navSichtbar && L.navAbstand >= 6 && L.navAbstand <= 10, wo + ': Menüleiste unten nur 8 px vom Rand', L.navAbstand);
+        }
       }
     }
     gleich(q.fehler, [], name + ' ' + (dunkel ? 'dunkel' : 'hell') + ': keine Programmfehler');
