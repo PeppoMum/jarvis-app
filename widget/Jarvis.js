@@ -13,7 +13,7 @@ const LOOKS = {
   smaragd: { l: { bg1: "#F3F2EC", bg2: "#EEEEE6", card: "#FFFFFF", ln: "#DCE3DC", tx: "#0F2A22", mu: "#52645B", ac: "#0B5D47", onac: "#FFFFFF", acs: "#DDEEE5", onacs: "#0B4A39", red: "#B3261E", ...kat(1) },
              d: { bg1: "#1B1B1A", bg2: "#151514", card: "#242423", ln: "#363633", tx: "#F2F1EC", mu: "#ADACA5", ac: "#7FD3A8", onac: "#0B2A1E", acs: "#24392F", onacs: "#A8E6C6", red: "#F28B82", ...kat(0) } },
   plakat: { l: { bg1: "#FFFFFF", bg2: "#FFFFFF", card: "#F2F2F2", ln: "#0A0A0A", tx: "#0A0A0A", mu: "#555555", ac: "#D7000F", onac: "#FFFFFF", acs: "#FFE3E5", onacs: "#A5000B", red: "#D7000F", ...kat(1) },
-            d: { bg1: "#0E0E0E", bg2: "#0E0E0E", card: "#1F1F1F", ln: "#F5F5F5", tx: "#F5F5F5", mu: "#B0B0B0", ac: "#FF4D57", onac: "#0A0A0A", acs: "#3A1416", onacs: "#FFB3B8", red: "#FF4D57", ...kat(0) } },
+            d: { bg1: "#000000", bg2: "#000000", card: "#1F1F1F", ln: "#F5F5F5", tx: "#F5F5F5", mu: "#B0B0B0", ac: "#FF4D57", onac: "#0A0A0A", acs: "#3A1416", onacs: "#FFB3B8", red: "#FF4D57", ...kat(0) } },
   ruhe: { l: { bg1: "#EFEBE4", bg2: "#EFEBE4", card: "#FFFFFF", ln: "#E2DCD2", tx: "#2B2622", mu: "#5F5850", ac: "#0E6E54", onac: "#FFFFFF", acs: "#DCEFE7", onacs: "#0A4F3D", red: "#B3261E", ...kat(1) },
           d: { bg1: "#1B1918", bg2: "#1B1918", card: "#2A2725", ln: "#3A3633", tx: "#F1ECE6", mu: "#B5ACA2", ac: "#8FDCBF", onac: "#0A2E22", acs: "#1E3A30", onacs: "#8FDCBF", red: "#E8746B", ...kat(0) } }
 };
@@ -153,8 +153,9 @@ function plan(d) {
   const j = new Date(), heute = j.getFullYear() + "-" + String(j.getMonth() + 1).padStart(2, "0") + "-" + String(j.getDate()).padStart(2, "0");
   const ms = (hm) => { const [h, m] = String(hm).split(":").map(Number); const x = new Date(j); x.setHours(h, m || 0, 0, 0); return x.getTime(); };
   const offen = d.tag === heute ? d.termine.filter((t) => ms(t.e || t.s) > j.getTime()) : d.termine;
-  const nx = offen[0];
-  if (nx) return { nx, rest: offen.slice(1), laeuft: d.tag === heute && ms(nx.s) <= j.getTime(), ab: ms(nx.s) };
+  // Eine Fahrt ist nie „Als Nächstes“, sie steht nur blass in der Liste (wie in der App)
+  const nx = offen.find((t) => !t.f) || offen[0];
+  if (nx) return { nx, rest: offen.filter((t) => t !== nx && !(t.f && t.s < nx.s)), laeuft: d.tag === heute && ms(nx.s) <= j.getTime(), ab: ms(nx.s), bis: nx.e ? ms(nx.e) : null };
   return { nx: d.morgen[0] ? { ...d.morgen[0], morgen: true } : null, rest: [], laeuft: false };
 }
 function naechstKarte(s, C, p, gr) {
@@ -174,16 +175,97 @@ function naechstKarte(s, C, p, gr) {
 function zahlen(s, C, d, kurz) {
   txt(s, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(12), d.woche.lvl === "g" ? C.mu : C.red);
 }
+/* ---------- Plakat (12.11.2026, wie im Design-Board „4b Plakat rund“): riesige Uhrzeit, rote Zeile, dicke Schrift, keine Kästen ---------- */
+// Rote Zeile über dem Termin: JETZT / IN 60 MIN / MORGEN
+function pZeile(s, C, p, gr) {
+  if (!p.nx) { txt(s, "HEUTE", F.schwer(gr), C.ac); return; }
+  if (p.nx.morgen) { txt(s, "MORGEN", F.schwer(gr), C.ac); return; }
+  if (p.laeuft) { txt(s, "JETZT", F.schwer(gr), C.ac); return; }
+  const z = s.addStack(); z.layoutHorizontally(); z.centerAlignContent();
+  const dt = z.addDate(new Date(p.ab)); dt.applyRelativeStyle(); dt.font = F.schwer(gr); dt.textColor = C.ac; dt.lineLimit = 1;
+}
+// Unterzeile: „noch 50 Min“ während er läuft, sonst „bis 15:30 · Ort“
+function pUnter(p) {
+  if (!p.nx) return "";
+  if (p.laeuft && p.bis) { const m = Math.max(1, Math.round((p.bis - Date.now()) / 60000)); return "noch " + (m >= 60 ? Math.floor(m / 60) + " Std " + (m % 60 ? (m % 60) + " Min" : "") : m + " Min").trim(); }
+  return [p.nx.e ? "bis " + p.nx.e : "", p.nx.o || ""].filter(Boolean).join(" · ");
+}
+// Listenzeile: Uhrzeit fett, Titel; Fahrten blass
+function pListe(s, C, t, gr) {
+  const z = s.addStack(); z.layoutHorizontally(); z.centerAlignContent();
+  const a = z.addStack(); a.size = new Size(gr * 3.1, 0); txt(a, t.s, t.f ? F.halb(gr - 1) : F.schwer(gr), t.f ? C.mu : C.tx); a.addSpacer();
+  z.addSpacer(4); txt(z, t.ti, t.f ? F.normal(gr - 1) : F.halb(gr), t.f ? C.mu : C.tx); z.addSpacer();
+}
+function pLos(s, C, d) { if (!d.los) return; txt(s, "Losfahren " + d.los.at, F.schwer(12), C.ac); }
+function pWoche(s, C, d) { txt(s, "Woche " + String(d.woche.h).replace(".", ",") + "/" + d.woche.lim, F.halb(11.5), d.woche.lvl === "g" ? C.mu : C.red); }
+function plakat(w, C, d, p, fam) {
+  if (fam === "small") {
+    w.setPadding(15, 15, 15, 15);
+    const k = w.addStack(); k.layoutHorizontally(); k.centerAlignContent(); pZeile(k, C, p, 12); k.addSpacer(); wetter(k, C, d, 11);
+    w.addSpacer();
+    if (!p.nx) { txt(w, "Nichts mehr", F.schwer(26), C.tx, 2); w.addSpacer(); pWoche(w, C, d); return w; }
+    const u = txt(w, p.nx.s, F.schwer(46), C.tx); u.minimumScaleFactor = 0.6; w.addSpacer(2);
+    txt(w, p.nx.ti, F.schwer(15), C.tx, 2);
+    if (d.los && !p.laeuft && !p.nx.morgen) { w.addSpacer(3); pLos(w, C, d); }
+    return w;
+  }
+  if (fam === "large") {
+    w.setPadding(18, 18, 18, 18);
+    const k = w.addStack(); k.layoutHorizontally(); k.centerAlignContent(); txt(k, d.tagText || "Heute", F.fett(13), C.tx); k.addSpacer(); wetter(k, C, d, 12);
+    w.addSpacer(10);
+    if (p.nx) {
+      const u = txt(w, p.nx.s, F.schwer(64), C.tx); u.minimumScaleFactor = 0.6;
+      pZeile(w, C, p, 13); w.addSpacer(1);
+      txt(w, p.nx.ti, F.schwer(26), C.tx, 2);
+      const un = pUnter(p); if (un) txt(w, un, F.halb(14), C.tx);
+      if (d.los && !p.laeuft && !p.nx.morgen) { w.addSpacer(3); pLos(w, C, d); }
+    } else txt(w, "Heute keine Termine mehr", F.schwer(24), C.tx, 2);
+    w.addSpacer(10);
+    const reihen = (p.nx && p.nx.morgen ? d.morgen.slice(1, 5) : p.rest.slice(0, 4)).concat(!p.nx || p.nx.morgen ? [] : d.morgen.slice(0, Math.max(0, 3 - p.rest.length)).map((t) => ({ ...t, ti: "Morgen: " + t.ti })));
+    reihen.forEach((t) => { const l = w.addStack(); l.size = new Size(0, t.f ? 1 : 2); l.backgroundColor = t.f ? C.mu : C.ln; l.addSpacer(); w.addSpacer(5); pListe(w, C, t, 15); w.addSpacer(5); });
+    if (reihen.length) { const l = w.addStack(); l.size = new Size(0, 2); l.backgroundColor = C.ln; l.addSpacer(); }
+    w.addSpacer();
+    const f = w.addStack(); f.layoutHorizontally(); pWoche(f, C, d); f.addSpacer();
+    const st = new Date(d.at); txt(f, "Stand " + String(st.getHours()).padStart(2, "0") + ":" + String(st.getMinutes()).padStart(2, "0"), F.halb(10.5), C.mu);
+    return w;
+  }
+  // mittel: links Termin groß, dicke Linie, rechts die nächsten Zeiten
+  w.setPadding(15, 18, 15, 18);
+  const r = w.addStack(); r.layoutHorizontally(); r.topAlignContent();
+  const li = r.addStack(); li.layoutVertically(); li.size = new Size(128, 140);
+  pZeile(li, C, p, 12); li.addSpacer(4);
+  if (p.nx) {
+    txt(li, p.nx.ti, F.schwer(22), C.tx, 3);
+    li.addSpacer();
+    txt(li, p.laeuft ? pUnter(p) : p.nx.s + (p.nx.e ? "–" + p.nx.e : ""), F.halb(12.5), C.tx, 1);
+    if (d.los && !p.laeuft && !p.nx.morgen) pLos(li, C, d);
+  } else { txt(li, "Heute nichts mehr", F.schwer(22), C.tx, 2); li.addSpacer(); }
+  r.addSpacer(12);
+  const strich = r.addStack(); strich.size = new Size(2, 140); strich.backgroundColor = C.ln;
+  r.addSpacer(12);
+  const re = r.addStack(); re.layoutVertically(); re.size = new Size(0, 140);
+  const ob = re.addStack(); ob.layoutHorizontally(); ob.addSpacer(); wetter(ob, C, d, 11); re.addSpacer(4);
+  const liste = re.addStack(); liste.layoutVertically(); liste.spacing = 6;
+  // Abends steht der erste Termin von morgen groß links, rechts dann die weiteren von morgen
+  const reihen = p.nx && p.nx.morgen ? d.morgen.slice(1, 5) : p.rest.slice(0, 4);
+  if (!reihen.length && d.morgen.length && !(p.nx && p.nx.morgen)) reihen.push({ ...d.morgen[0], ti: "Morgen " + d.morgen[0].ti });
+  reihen.forEach((t) => pListe(liste, C, t, 13.5));
+  re.addSpacer(); pWoche(re, C, d);
+  return w;
+}
+
 function bauen(d, fam) {
   const w = new ListWidget(), C = farben(d), u = uhrJetzt(d);
   hintergrund(w, C); w.refreshAfterDate = new Date(Date.now() + 10 * 60000);
   if (!d) { w.setPadding(14, 16, 14, 16); txt(w, "Jarvis", F.schwer(15), C.tx); w.addSpacer(6); txt(w, "Tippen, um Jarvis einzurichten.", F.halb(13), C.mu, 3); return w; }
   const p = plan(d);
   if (fam === "accessoryRectangular" || fam === "accessoryInline") {
-    txt(w, p.nx ? (p.nx.morgen ? "Morgen " : "") + p.nx.s + " " + p.nx.ti : "Keine Termine mehr", F.fett(13), Color.white());
+    if (p.nx && fam === "accessoryRectangular") { txt(w, (p.nx.morgen ? "Morgen " : "") + p.nx.s, F.schwer(20), Color.white()); txt(w, p.nx.ti, F.fett(13), Color.white()); }
+    else txt(w, p.nx ? (p.nx.morgen ? "Morgen " : "") + p.nx.s + " " + p.nx.ti : "Keine Termine mehr", F.fett(13), Color.white());
     if (d.los) txt(w, "Los " + d.los.at, F.halb(12), Color.white());
     return w;
   }
+  if (!d.skin || d.skin === "plakat") return plakat(w, C, d, p, fam);
   if (fam === "small") {
     w.setPadding(14, 14, 14, 14);
     const k = w.addStack(); k.layoutHorizontally(); k.centerAlignContent();
