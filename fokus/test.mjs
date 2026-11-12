@@ -2,7 +2,9 @@
 // Teil 1 prüft den Rechenkern direkt (schnell, jede Regel einzeln).
 // Teil 2 bedient die echte Seite in Chromium mit gesteuerter Uhr: 25-Minuten-Runden laufen in Sekunden durch.
 // Arbeitet ohne Netz (eigener kleiner Server nur für fokus/). Bei einem Fehler: Ende mit Code 1.
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
+import os from 'node:os';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,6 +12,17 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
+// Playwright suchen: im Repo, über PW_PFAD, sonst (nur bei GitHub) in einen eigenen Ordner holen.
+// Grund: ein späteres „npm install“ im Prüf-Ablauf kann das Paket im Repo wieder entfernen.
+async function loadPlaywright() {
+  const req = createRequire(import.meta.url);
+  for (const p of ['playwright', process.env.PW_PFAD].filter(Boolean)) { try { return req(p); } catch (e) {} }
+  if (!process.env.CI) throw new Error('Playwright fehlt (npm install playwright oder PW_PFAD setzen)');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fokus-pw-'));
+  execFileSync('npm', ['install', '--no-save', '--no-audit', '--no-fund', '--prefix', dir, 'playwright@1.48.2'], { stdio: 'inherit' });
+  return createRequire(path.join(dir, 'x.js'))('playwright');
+}
+const { chromium } = await loadPlaywright();
 const MIN = 60000;
 let fails = 0, passed = 0;
 const ok = (c, m) => { if (!c) throw new Error(m); };
